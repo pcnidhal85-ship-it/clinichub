@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Email Verified Successfully — ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; margin: 40px auto;">
+    <div class="card" style="text-align: center; padding: 45px 35px;">
+        <div class="icon-box icon-box-xl icon-box-success" style="margin: 0 auto 20px;">
+            <i class="fa-solid fa-check-double"></i>
+        </div>
+
+        <span class="badge badge-completed" style="margin-bottom: 14px;">
+            <i class="fa-solid fa-circle-check"></i> Account Activated
+        </span>
+
+        <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px;">
+            Email Confirmed Successfully
+        </h1>
+
+        <p style="color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin-bottom: 24px;">
+            Your ClinicHub patient account is active and verified. You can now log in, schedule doctor appointments, and monitor live waiting room queues.
+        </p>
+
+        <a href="{% url 'login' %}" class="btn btn-primary" style="width: 100%;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>Sign In to Your Account</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

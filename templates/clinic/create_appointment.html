@@ -1,0 +1,1582 @@
+{% extends "base.html" %}
+
+{% block title %}Book an Appointment — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .booking-wrapper {
+        max-width: 880px;
+        margin: 0 auto;
+        padding-bottom: 70px;
+    }
+
+    /* Page Header */
+    .page-intro {
+        margin-bottom: 26px;
+    }
+    .page-intro .back-link {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        margin-bottom: 12px;
+        transition: color 0.2s;
+    }
+    .page-intro .back-link:hover {
+        color: var(--primary);
+    }
+    .page-intro h1 {
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
+        margin: 0 0 6px 0;
+    }
+    .page-intro p {
+        color: var(--text-secondary);
+        font-size: 15px;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Stepper Progress Bar (MicroLab & Modern Health System) */
+    .stepper-container {
+        margin-bottom: 32px;
+        position: relative;
+    }
+    .stepper-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        padding: 0 16px;
+    }
+    .stepper-bar::before {
+        content: "";
+        position: absolute;
+        top: 22px;
+        left: 48px;
+        right: 48px;
+        height: 3px;
+        background: var(--border-color);
+        z-index: 1;
+    }
+    .stepper-progress {
+        position: absolute;
+        top: 22px;
+        left: 48px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary) 0%, #10b981 100%);
+        z-index: 1;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 0%;
+    }
+    .stepper-step {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        padding: 0;
+        outline: none;
+    }
+    .step-circle {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: white;
+        border: 2.5px solid var(--border-color);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        transition: all 0.28s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .stepper-step.active .step-circle {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: 0 0 0 6px rgba(8, 127, 140, 0.2);
+        transform: scale(1.08);
+    }
+    .stepper-step.completed .step-circle {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    }
+    .step-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-align: center;
+        transition: color 0.2s;
+        white-space: nowrap;
+    }
+    .stepper-step.active .step-label {
+        color: var(--primary);
+        font-weight: 700;
+    }
+    .stepper-step.completed .step-label {
+        color: #10b981;
+    }
+
+    /* Wizard Step Cards */
+    .wizard-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 34px 38px;
+        margin-bottom: 24px;
+        animation: fadeInStep 0.28s ease-out;
+    }
+    @media (max-width: 640px) {
+        .wizard-card {
+            padding: 22px 18px;
+        }
+    }
+    @keyframes fadeInStep {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .wizard-header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .wizard-header h2 {
+        font-size: 21px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0 0 4px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .wizard-header p {
+        font-size: 14.5px;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.45;
+    }
+
+    /* Doctor Profile Card (Step 1) */
+    .doctor-profile-card {
+        background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+        border: 1.5px solid #99f6e4;
+        border-radius: var(--radius-md);
+        padding: 18px 22px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-top: 22px;
+        box-shadow: 0 2px 8px rgba(8, 127, 140, 0.06);
+        animation: fadeInStep 0.2s ease-out;
+    }
+    .doc-avatar-large {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(8, 127, 140, 0.25);
+    }
+    .doc-profile-details h3 {
+        margin: 0 0 2px 0;
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+    .doc-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0d9488;
+        background: #ccfbf1;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+    .doc-schedule-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-top: 6px;
+    }
+
+    /* Date Carousel Strip (MicroLab Reference) */
+    .date-carousel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .date-strip {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 6px 2px 14px;
+        scrollbar-width: thin;
+    }
+    .date-pill {
+        flex: 0 0 84px;
+        background: #f8fafc;
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 12px 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+        position: relative;
+    }
+    .date-pill:hover {
+        border-color: var(--primary);
+        background: white;
+        transform: translateY(-2px);
+    }
+    .date-pill.selected {
+        background: var(--primary) !important;
+        border-color: var(--primary) !important;
+        color: white !important;
+        box-shadow: 0 4px 14px rgba(8, 127, 140, 0.32);
+    }
+    .date-pill.is-working {
+        border-color: #99f6e4;
+    }
+    .date-pill.is-off {
+        opacity: 0.65;
+        background: #f1f5f9;
+    }
+    .date-pill-day {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+    .date-pill.selected .date-pill-day {
+        color: rgba(255, 255, 255, 0.9);
+    }
+    .date-pill-num {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+    .date-pill.selected .date-pill-num {
+        color: white;
+    }
+    .date-pill-status {
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .date-pill-status.status-avail {
+        color: #059669;
+    }
+    .date-pill-status.status-off {
+        color: #94a3b8;
+    }
+    .date-pill.selected .date-pill-status {
+        color: white !important;
+    }
+
+    /* Slots Grid */
+    .slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+        margin: 18px 0 20px;
+    }
+    .slot-btn {
+        background: white;
+        border: 1.5px solid var(--border-color);
+        border-radius: 28px;
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.22s ease;
+        text-align: center;
+        outline: none;
+    }
+    .slot-btn:hover:not(.disabled) {
+        border-color: var(--primary);
+        background: #f0fdfa;
+        transform: translateY(-2px);
+    }
+    .slot-btn.selected {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: 0 4px 14px rgba(8, 127, 140, 0.32);
+    }
+    .slot-btn.disabled {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+    .slot-time {
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .slot-cap {
+        font-size: 12px;
+        margin-top: 4px;
+        opacity: 0.88;
+    }
+    .slot-btn.selected .slot-cap {
+        opacity: 0.98;
+    }
+
+    /* Off-day Helper Banner with 1-Click Jump */
+    .off-day-banner {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border: 1.5px solid #fde68a;
+        border-radius: var(--radius-md);
+        padding: 20px 24px;
+        margin: 18px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        box-shadow: 0 3px 10px rgba(245, 158, 11, 0.08);
+        animation: fadeInStep 0.25s ease-out;
+    }
+    .off-day-text {
+        font-size: 14.5px;
+        color: #92400e;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        line-height: 1.45;
+    }
+
+    /* Token Status Legend */
+    .token-legend {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+        padding: 12px 18px;
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: 13px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+    .legend-box {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+    }
+    .legend-box.available { background: #087f8c; }
+    .legend-box.booked { background: #cbd5e1; }
+    .legend-box.selected { background: #e11d48; }
+
+    /* Token Grid (OPD Token Sequence 1..20) */
+    .tokens-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .token-card {
+        height: 66px;
+        border-radius: var(--radius-md);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1.5px solid var(--border-color);
+        background: white;
+        user-select: none;
+    }
+    .token-card.available {
+        border-color: #087f8c;
+        color: #087f8c;
+        background: #f0fdfa;
+    }
+    .token-card.available:hover {
+        background: #087f8c;
+        color: white;
+        transform: scale(1.08);
+        box-shadow: 0 4px 12px rgba(8, 127, 140, 0.25);
+    }
+    .token-card.booked {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
+    .token-card.selected {
+        background: #e11d48 !important;
+        border-color: #e11d48 !important;
+        color: white !important;
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(225, 29, 72, 0.35);
+        animation: popSelect 0.25s ease;
+    }
+    @keyframes popSelect {
+        0% { transform: scale(0.9); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1.1); }
+    }
+    .token-num {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1;
+        font-family: monospace, monospace;
+    }
+    .token-tag {
+        font-size: 9.5px;
+        font-weight: 700;
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Live Summary Box (MicroLab Reference) */
+    .live-selection-banner {
+        background: linear-gradient(135deg, #094e56 0%, #087f8c 100%);
+        color: white;
+        border-radius: var(--radius-md);
+        padding: 18px 24px;
+        margin-top: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        box-shadow: 0 4px 14px rgba(8, 127, 140, 0.25);
+        animation: fadeInStep 0.2s ease-out;
+    }
+    .selection-label {
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #99f6e4;
+        font-weight: 700;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .selection-text {
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    /* Symptom Quick Chips */
+    .symptom-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .symptom-chip {
+        background: #f1f5f9;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 5px 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+    .symptom-chip:hover {
+        background: #e2e8f0;
+        color: var(--text-primary);
+        border-color: #cbd5e1;
+    }
+
+    /* Navigation Action Bar */
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+        padding-top: 22px;
+        border-top: 1px solid var(--border-color);
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .action-right-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+    .step-guide-tip {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+    .step-guide-tip.valid {
+        color: #059669;
+    }
+
+    /* Step 4 Digital OPD Ticket Card */
+    .opd-ticket {
+        background: white;
+        border: 2px dashed #0d9488;
+        border-radius: var(--radius-lg);
+        padding: 26px 30px;
+        margin-bottom: 24px;
+        position: relative;
+        box-shadow: 0 4px 16px rgba(13, 148, 136, 0.08);
+    }
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+    }
+    .ticket-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 18px;
+        color: var(--primary);
+    }
+    .ticket-badge {
+        background: #ccfbf1;
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .ticket-body-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+    .ticket-field-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .ticket-field-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .ticket-token-spotlight {
+        background: linear-gradient(135deg, #0f766e 0%, #087f8c 100%);
+        border-radius: var(--radius-md);
+        padding: 18px 24px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+    .ticket-barcode-sim {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+        height: 32px;
+        opacity: 0.8;
+    }
+    .barcode-bar {
+        background: #94a3b8;
+        height: 100%;
+        width: 3px;
+    }
+    .barcode-bar.thick { width: 6px; }
+    .barcode-bar.thin { width: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container booking-wrapper">
+    <!-- Breadcrumb & Header -->
+    <div class="page-intro">
+        <a href="{% url 'patient-dashboard' %}" class="back-link">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Patient Dashboard</span>
+        </a>
+        <h1>Schedule a Consultation</h1>
+        <p>Follow our simple 4-step wizard to choose your specialty, select your doctor, pick a convenient time slot, and reserve your OPD queue token.</p>
+    </div>
+
+    <!-- 4-Step Stepper Progress Bar -->
+    <div class="stepper-container">
+        <div class="stepper-bar">
+            <div class="stepper-progress" id="stepperProgressBar"></div>
+
+            <button type="button" class="stepper-step active" id="step-node-1" onclick="goToStep(1)">
+                <div class="step-circle"><i class="fa-solid fa-user-doctor"></i></div>
+                <span class="step-label">1. Specialty & Doctor</span>
+            </button>
+
+            <button type="button" class="stepper-step" id="step-node-2" onclick="goToStep(2)">
+                <div class="step-circle"><i class="fa-regular fa-calendar-check"></i></div>
+                <span class="step-label">2. Date & Time Slot</span>
+            </button>
+
+            <button type="button" class="stepper-step" id="step-node-3" onclick="goToStep(3)">
+                <div class="step-circle"><i class="fa-solid fa-ticket"></i></div>
+                <span class="step-label">3. OPD Queue Token</span>
+            </button>
+
+            <button type="button" class="stepper-step" id="step-node-4" onclick="goToStep(4)">
+                <div class="step-circle"><i class="fa-solid fa-clipboard-check"></i></div>
+                <span class="step-label">4. Review & Confirm</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Booking Form -->
+    <form method="post" action="{% url 'create-appointment' %}" id="bookingForm" novalidate>
+        {% csrf_token %}
+
+        <!-- Hidden Inputs for Django AppointmentForm -->
+        <input type="hidden" name="slot_start_time" id="id_slot_start_time" value="{{ form.slot_start_time.value|default:'' }}">
+        <input type="hidden" name="slot_end_time" id="id_slot_end_time" value="{{ form.slot_end_time.value|default:'' }}">
+        <input type="hidden" name="time_slot" id="id_time_slot" value="{{ form.time_slot.value|default:'' }}">
+        <input type="hidden" name="token_number" id="id_token_number" value="{{ form.token_number.value|default:'' }}">
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="margin-bottom: 24px;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <div>{{ form.non_field_errors }}</div>
+            </div>
+        {% endif %}
+
+        <!-- ============================================== -->
+        <!-- STEP 1: Select Specialty & Doctor -->
+        <!-- ============================================== -->
+        <div class="wizard-card" id="stepCard1">
+            <div class="wizard-header">
+                <h2>
+                    <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-user-doctor"></i></span>
+                    <span>1. Select Specialty & Doctor</span>
+                </h2>
+                <p>Choose the clinical department and the attending doctor you wish to consult.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="id_department" class="form-label" style="font-weight: 700;">Medical Specialty / Department *</label>
+                <select name="department" id="id_department" class="form-select" required>
+                    <option value="">-- Choose Medical Department --</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if form.department.value|stringformat:"s" == dept.id|stringformat:"s" %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.department.errors %}
+                    <div class="field-error">{{ form.department.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_doctor" class="form-label" style="font-weight: 700;">Consulting Doctor / Physician *</label>
+                <select name="doctor" id="id_doctor" class="form-select" required>
+                    <option value="">-- Select Department First --</option>
+                </select>
+                {% if form.doctor.errors %}
+                    <div class="field-error">{{ form.doctor.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Doctor Information Banner (Dynamically shown) -->
+            <div id="docProfileCard" class="doctor-profile-card" style="display: none;">
+                <div class="doc-avatar-large">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div class="doc-profile-details">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h3 id="docBannerName">Dr. Arun Kumar</h3>
+                        <span class="doc-badge-pill" id="docBannerSpec">Cardiology</span>
+                        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;" id="docBannerLicense">#DOC-001</span>
+                    </div>
+                    <div class="doc-schedule-pill">
+                        <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+                        <span id="docBannerScheduleText">Mondays (10:00 AM – 01:00 PM)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1 Navigation Action Bar -->
+            <div class="wizard-actions">
+                <a href="{% url 'patient-dashboard' %}" class="btn btn-outline">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancel</span>
+                </a>
+                <div class="action-right-group">
+                    <button type="button" class="btn btn-primary btn-lg" id="btnStep1Next" onclick="onStep1Next()" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        <span>Next: Select Date & Time Slot</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <div class="step-guide-tip" id="step1Tip">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Select a department and doctor to continue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- STEP 2: Date & Available Time Slot -->
+        <!-- ============================================== -->
+        <div class="wizard-card" id="stepCard2" style="display: none;">
+            <div class="wizard-header">
+                <h2>
+                    <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-regular fa-calendar-check"></i></span>
+                    <span>2. Select Consultation Date & Time Slot</span>
+                </h2>
+                <p id="step2DocSubtitle">Pick a date and select an available consultation slot for your doctor.</p>
+            </div>
+
+            <!-- Quick 14-Day Date Carousel -->
+            <div style="margin-bottom: 22px;">
+                <div class="date-carousel-header">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-regular fa-calendar-days" style="color: var(--primary);"></i> Upcoming 14 Days
+                    </span>
+                    <span id="carouselMonthLabel" style="font-size: 13.5px; font-weight: 700; color: var(--primary);"></span>
+                </div>
+                <div class="date-strip" id="dateStrip">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_appointment_date" class="form-label" style="font-weight: 700;">Or Pick Specific Date</label>
+                <input type="date" name="appointment_date" id="id_appointment_date" class="form-control" min="{{ today|date:'Y-m-d' }}" value="{{ form.appointment_date.value|default:today|date:'Y-m-d' }}" required>
+                {% if form.appointment_date.errors %}
+                    <div class="field-error">{{ form.appointment_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Time Slots Container -->
+            <div style="margin-top: 26px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <label class="form-label" style="font-weight: 700; margin: 0;">
+                        Available Time Slots *
+                    </label>
+                    <span id="slotsCountBadge" class="badge badge-waiting" style="display: none;">0 Slots</span>
+                </div>
+
+                <!-- Slots Loading Spinner -->
+                <div id="slotsLoading" style="display: none; text-align: center; padding: 34px 15px;">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 30px; color: var(--primary);"></i>
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-top: 10px;">Checking doctor availability...</div>
+                </div>
+
+                <!-- Slots Grid -->
+                <div id="slotsContainer" class="slots-grid"></div>
+
+                <!-- Off-Day Helper Banner with 1-Click Jump -->
+                <div id="offDayBanner" class="off-day-banner" style="display: none;">
+                    <div class="off-day-text">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; color: #d97706; flex-shrink: 0;"></i>
+                        <span id="offDayText">The doctor does not consult on this date.</span>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnJumpNextDate" style="white-space: nowrap; box-shadow: 0 2px 8px rgba(8, 127, 140, 0.25);">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span id="btnJumpNextDateText">Switch to Next Available Date</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2 Navigation Action Bar -->
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-outline" onclick="goToStep(1)">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Doctor</span>
+                </button>
+                <div class="action-right-group">
+                    <button type="button" class="btn btn-primary btn-lg" id="btnStep2Next" onclick="onStep2Next()" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        <span>Next: Select Token</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <div class="step-guide-tip" id="step2Tip">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Select a time slot above to continue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- STEP 3: Select OPD Queue Token -->
+        <!-- ============================================== -->
+        <div class="wizard-card" id="stepCard3" style="display: none;">
+            <div class="wizard-header">
+                <h2>
+                    <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-ticket"></i></span>
+                    <span>3. Select Your OPD Queue Token</span>
+                </h2>
+                <p id="step3Subtitle">Choose your individual token number for the selected consultation time slot.</p>
+            </div>
+
+            <!-- Status Indicator Legend -->
+            <div class="token-legend">
+                <div class="legend-item">
+                    <span class="legend-box available"></span>
+                    <span>Available Free Token</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-box booked"></span>
+                    <span>Booked / Taken</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-box selected"></span>
+                    <span>Your Selection</span>
+                </div>
+                <div style="margin-left: auto;">
+                    <span id="tokensAvailableBadge" class="badge badge-completed"></span>
+                </div>
+            </div>
+
+            <!-- Tokens Loading Spinner -->
+            <div id="tokensLoading" style="display: none; text-align: center; padding: 30px 15px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 28px; color: var(--primary);"></i>
+                <div style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); margin-top: 10px;">Loading token numbers...</div>
+            </div>
+
+            <!-- Tokens Grid (1..20) -->
+            <div id="tokensGrid" class="tokens-grid"></div>
+
+            <!-- Clinical Reason Input with Quick Chips -->
+            <div class="form-group" style="margin-top: 24px; margin-bottom: 0;">
+                <label for="id_reason" class="form-label" style="font-weight: 700;">
+                    Brief Clinical Reason / Complaints (Optional)
+                </label>
+                <textarea name="reason" id="id_reason" class="form-control" rows="3" placeholder="Describe symptoms or purpose of consultation (e.g. routine checkup, fever, chest pain)...">{{ form.reason.value|default:'' }}</textarea>
+                
+                <div class="symptom-chips">
+                    <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); align-self: center; margin-right: 4px;">Quick Fill:</span>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Routine general health checkup')"><i class="fa-solid fa-notes-medical"></i> Routine Checkup</button>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Fever, cough and body ache')"><i class="fa-solid fa-temperature-arrow-up"></i> Fever / Cold</button>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Chest discomfort and blood pressure monitoring')"><i class="fa-solid fa-heart-pulse"></i> BP / Heart</button>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Ear, nose or throat discomfort')"><i class="fa-solid fa-head-side-cough"></i> ENT Symptoms</button>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Prescription renewal and medication review')"><i class="fa-solid fa-prescription-bottle-medical"></i> Refill</button>
+                    <button type="button" class="symptom-chip" onclick="fillReason('Post-treatment follow-up consultation')"><i class="fa-solid fa-clipboard-user"></i> Follow-up</button>
+                </div>
+            </div>
+
+            <!-- Live Selected Banner -->
+            <div class="live-selection-banner" id="liveSelectionBanner" style="display: none;">
+                <div>
+                    <div class="selection-label">
+                        <i class="fa-solid fa-circle-check"></i> Active Token Reservation
+                    </div>
+                    <div class="selection-text" id="liveSelectionText">-</div>
+                </div>
+                <div style="font-size: 26px; font-weight: 800; font-family: monospace; background: rgba(255,255,255,0.18); padding: 6px 16px; border-radius: 8px; letter-spacing: 1px;" id="liveTokenBadge">
+                    #---
+                </div>
+            </div>
+
+            <!-- Step 3 Navigation Action Bar -->
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-outline" onclick="goToStep(2)">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Slots</span>
+                </button>
+                <div class="action-right-group">
+                    <button type="button" class="btn btn-primary btn-lg" id="btnStep3Next" onclick="onStep3Next()" disabled style="opacity: 0.6; cursor: not-allowed;">
+                        <span>Next: Review & Confirm</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <div class="step-guide-tip" id="step3Tip">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Click an available token above to proceed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- STEP 4: Review & Final Confirmation -->
+        <!-- ============================================== -->
+        <div class="wizard-card" id="stepCard4" style="display: none;">
+            <div class="wizard-header">
+                <h2>
+                    <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <span>4. Review & Confirm Booking</span>
+                </h2>
+                <p>Please double-check your appointment slip details before final confirmation.</p>
+            </div>
+
+            <!-- Digital OPD Slip Preview -->
+            <div class="opd-ticket">
+                <div class="ticket-header">
+                    <div class="ticket-brand">
+                        <i class="fa-solid fa-hospital"></i>
+                        <span>ClinicHub Health Care • OPD Slip</span>
+                    </div>
+                    <span class="ticket-badge"><i class="fa-solid fa-shield-halved"></i> Electronic OPD Slip</span>
+                </div>
+
+                <div class="ticket-body-grid">
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-solid fa-hospital-user"></i> Patient Name</div>
+                        <div class="ticket-field-value">{{ patient.user.get_full_name|default:patient.user.username }}</div>
+                    </div>
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-solid fa-building-wheat"></i> Specialty</div>
+                        <div class="ticket-field-value" id="revDept">-</div>
+                    </div>
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-solid fa-user-doctor"></i> Attending Doctor</div>
+                        <div class="ticket-field-value" id="revDoctor">-</div>
+                    </div>
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-regular fa-calendar"></i> Appointment Date</div>
+                        <div class="ticket-field-value" id="revDate">-</div>
+                    </div>
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-regular fa-clock"></i> Consultation Slot</div>
+                        <div class="ticket-field-value" id="revSlot">-</div>
+                    </div>
+                    <div>
+                        <div class="ticket-field-label"><i class="fa-solid fa-stethoscope"></i> Clinical Reason</div>
+                        <div class="ticket-field-value" id="revReason" style="font-weight: 500;">Routine consultation</div>
+                    </div>
+                </div>
+
+                <div class="ticket-token-spotlight">
+                    <div>
+                        <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85;">Assigned Queue Token</div>
+                        <div style="font-size: 32px; font-weight: 800; font-family: monospace; letter-spacing: 1px;" id="revToken">TOKEN #---</div>
+                        <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Doctor queue order will strictly follow this token sequence.</div>
+                    </div>
+                    <div class="ticket-barcode-sim">
+                        <div class="barcode-bar thick"></div>
+                        <div class="barcode-bar thin"></div>
+                        <div class="barcode-bar"></div>
+                        <div class="barcode-bar thin"></div>
+                        <div class="barcode-bar thick"></div>
+                        <div class="barcode-bar"></div>
+                        <div class="barcode-bar thick"></div>
+                        <div class="barcode-bar thin"></div>
+                        <div class="barcode-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: var(--radius-md); padding: 16px 20px; font-size: 13.5px; color: #0f766e; display: flex; gap: 14px; align-items: center; margin-bottom: 24px;">
+                <i class="fa-solid fa-lock" style="font-size: 22px; flex-shrink: 0;"></i>
+                <span><strong>Atomic Queue Lock:</strong> This token will be securely committed to the database upon confirmation. You will receive an instant printable OPD card.</span>
+            </div>
+
+            <!-- Step 4 Navigation Action Bar -->
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-outline" onclick="goToStep(3)">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Change Token</span>
+                </button>
+                <button type="submit" class="btn btn-primary btn-lg" id="btnConfirmBooking">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Confirm & Generate OPD Token</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+let doctorsData = [];
+let currentDoctor = null;
+let currentSlots = [];
+let selectedSlot = null;
+let selectedToken = null;
+
+const departmentSelect = document.getElementById("id_department");
+const doctorSelect = document.getElementById("id_doctor");
+const dateInput = document.getElementById("id_appointment_date");
+const dateStrip = document.getElementById("dateStrip");
+const carouselMonthLabel = document.getElementById("carouselMonthLabel");
+
+const docProfileCard = document.getElementById("docProfileCard");
+const docBannerName = document.getElementById("docBannerName");
+const docBannerSpec = document.getElementById("docBannerSpec");
+const docBannerLicense = document.getElementById("docBannerLicense");
+const docBannerScheduleText = document.getElementById("docBannerScheduleText");
+
+const step1NextBtn = document.getElementById("btnStep1Next");
+const step2NextBtn = document.getElementById("btnStep2Next");
+const step3NextBtn = document.getElementById("btnStep3Next");
+
+const step1Tip = document.getElementById("step1Tip");
+const step2Tip = document.getElementById("step2Tip");
+const step3Tip = document.getElementById("step3Tip");
+
+const slotsContainer = document.getElementById("slotsContainer");
+const slotsLoading = document.getElementById("slotsLoading");
+const slotsCountBadge = document.getElementById("slotsCountBadge");
+const offDayBanner = document.getElementById("offDayBanner");
+const offDayText = document.getElementById("offDayText");
+const btnJumpNextDate = document.getElementById("btnJumpNextDate");
+const btnJumpNextDateText = document.getElementById("btnJumpNextDateText");
+
+const tokensGrid = document.getElementById("tokensGrid");
+const tokensLoading = document.getElementById("tokensLoading");
+const tokensAvailableBadge = document.getElementById("tokensAvailableBadge");
+
+const hiddenSlotStart = document.getElementById("id_slot_start_time");
+const hiddenSlotEnd = document.getElementById("id_slot_end_time");
+const hiddenTimeSlot = document.getElementById("id_time_slot");
+const hiddenTokenNum = document.getElementById("id_token_number");
+const reasonInput = document.getElementById("id_reason");
+
+const liveSelectionBanner = document.getElementById("liveSelectionBanner");
+const liveSelectionText = document.getElementById("liveSelectionText");
+const liveTokenBadge = document.getElementById("liveTokenBadge");
+
+const revDept = document.getElementById("revDept");
+const revDoctor = document.getElementById("revDoctor");
+const revDate = document.getElementById("revDate");
+const revSlot = document.getElementById("revSlot");
+const revToken = document.getElementById("revToken");
+const revReason = document.getElementById("revReason");
+
+// Weekday mapping
+const DAY_CODES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+// Safe Local YYYY-MM-DD Formatter (avoids UTC timezone shift bug)
+function formatLocalISODate(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 1. Wizard Step Navigation
+function goToStep(step) {
+    if (step === 2 && (!departmentSelect.value || !doctorSelect.value)) return;
+    if (step === 3 && !selectedSlot) return;
+    if (step === 4 && !selectedToken) return;
+
+    currentStep = step;
+
+    // Toggle card views
+    for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById("stepCard" + i);
+        if (card) card.style.display = (i === step) ? "block" : "none";
+
+        const node = document.getElementById("step-node-" + i);
+        if (node) {
+            node.classList.remove("active", "completed");
+            if (i < step) node.classList.add("completed");
+            else if (i === step) node.classList.add("active");
+        }
+    }
+
+    // Update progress bar width
+    const progressPercents = [0, 0, 33, 66, 100];
+    document.getElementById("stepperProgressBar").style.width = progressPercents[step] + "%";
+
+    // Scroll smoothly to top of card
+    window.scrollTo({ top: 120, behavior: "smooth" });
+
+    if (step === 4) {
+        populateReview();
+    }
+}
+
+function onStep1Next() {
+    if (departmentSelect.value && doctorSelect.value) {
+        goToStep(2);
+        loadSlotsForCurrentDate();
+    }
+}
+
+function onStep2Next() {
+    if (selectedSlot) {
+        goToStep(3);
+        loadTokensForSelectedSlot();
+    }
+}
+
+function onStep3Next() {
+    if (selectedToken) {
+        goToStep(4);
+    }
+}
+
+// Quick symptom chips helper
+function fillReason(text) {
+    if (reasonInput.value.trim()) {
+        reasonInput.value = reasonInput.value.trim() + ", " + text;
+    } else {
+        reasonInput.value = text;
+    }
+    reasonInput.focus();
+}
+
+// 2. Department Change -> Fetch Doctors
+departmentSelect.addEventListener("change", function () {
+    const deptId = this.value;
+    doctorSelect.innerHTML = '<option value="">-- Loading Doctors... --</option>';
+    docProfileCard.style.display = "none";
+    setStep1NextEnabled(false);
+
+    if (!deptId) {
+        doctorSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+        return;
+    }
+
+    fetch("{% url 'get-doctors' %}?department_id=" + encodeURIComponent(deptId))
+        .then(res => res.json())
+        .then(data => {
+            doctorsData = data.doctors || [];
+            doctorSelect.innerHTML = '<option value="">-- Select Attending Doctor --</option>';
+
+            if (doctorsData.length === 0) {
+                doctorSelect.innerHTML = '<option value="">No active doctors in this department</option>';
+                return;
+            }
+
+            doctorsData.forEach(doc => {
+                const opt = document.createElement("option");
+                opt.value = doc.id;
+                opt.textContent = doc.name + " (" + doc.specialization + ")";
+                doctorSelect.appendChild(opt);
+            });
+
+            // Check if pre-selection is set
+            const initialDocId = "{{ form.doctor.value|default:'' }}";
+            if (initialDocId && doctorsData.some(d => String(d.id) === String(initialDocId))) {
+                doctorSelect.value = initialDocId;
+                doctorSelect.dispatchEvent(new Event("change"));
+            }
+        })
+        .catch(err => {
+            doctorSelect.innerHTML = '<option value="">Failed to load doctors</option>';
+            console.error(err);
+        });
+});
+
+function setStep1NextEnabled(enabled) {
+    step1NextBtn.disabled = !enabled;
+    step1NextBtn.style.opacity = enabled ? "1" : "0.6";
+    step1NextBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+
+    if (enabled) {
+        step1Tip.classList.add("valid");
+        step1Tip.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Ready! Click Next to pick date and consultation slot</span>';
+    } else {
+        step1Tip.classList.remove("valid");
+        step1Tip.innerHTML = '<i class="fa-solid fa-circle-info"></i> <span>Select a department and doctor to continue</span>';
+    }
+}
+
+// 3. Doctor Change
+doctorSelect.addEventListener("change", function () {
+    const docId = this.value;
+    currentDoctor = doctorsData.find(d => String(d.id) === String(docId));
+
+    if (currentDoctor) {
+        docBannerName.textContent = currentDoctor.name;
+        docBannerSpec.textContent = currentDoctor.specialization;
+        docBannerLicense.textContent = currentDoctor.license_number ? ("#" + currentDoctor.license_number) : "";
+        docBannerScheduleText.textContent = currentDoctor.schedule_summary || "Weekly Schedule";
+        docProfileCard.style.display = "flex";
+
+        setStep1NextEnabled(true);
+
+        document.getElementById("step2DocSubtitle").textContent = "Consulting with " + currentDoctor.name + " (" + currentDoctor.specialization + "). Select your consultation date and slot.";
+
+        // Smart Defaulting: If the current date is an off-day, auto-switch to next available working day!
+        checkAndAutoSelectWorkingDate();
+        buildDateStrip();
+    } else {
+        docProfileCard.style.display = "none";
+        setStep1NextEnabled(false);
+    }
+});
+
+// Check if current dateInput is a working day, otherwise jump to first available day
+function checkAndAutoSelectWorkingDate() {
+    if (!currentDoctor) return;
+    const workingDays = currentDoctor.available_days || [];
+    if (workingDays.length === 0) return;
+
+    let curDate = new Date(dateInput.value + "T00:00:00");
+    if (isNaN(curDate.getTime())) curDate = new Date();
+
+    const curDayCode = DAY_CODES[curDate.getDay()];
+    if (!workingDays.includes(curDayCode)) {
+        // Find next working day within next 14 days
+        for (let i = 0; i < 14; i++) {
+            const testD = new Date();
+            testD.setDate(testD.getDate() + i);
+            const code = DAY_CODES[testD.getDay()];
+            if (workingDays.includes(code)) {
+                dateInput.value = formatLocalISODate(testD);
+                break;
+            }
+        }
+    }
+}
+
+// 4. Generate 14-Day Date Carousel
+function buildDateStrip() {
+    dateStrip.innerHTML = "";
+    const baseDate = new Date();
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    carouselMonthLabel.textContent = monthNames[baseDate.getMonth()] + " " + baseDate.getFullYear();
+
+    const docWorkingDays = currentDoctor ? (currentDoctor.available_days || []) : [];
+
+    for (let i = 0; i < 14; i++) {
+        const d = new Date();
+        d.setDate(baseDate.getDate() + i);
+        const iso = formatLocalISODate(d);
+        const dayCode = DAY_CODES[d.getDay()];
+
+        const pill = document.createElement("div");
+        pill.className = "date-pill";
+        pill.dataset.date = iso;
+        pill.dataset.dayCode = dayCode;
+
+        let dayLabel = days[d.getDay()];
+        if (i === 0) dayLabel = "Today";
+        else if (i === 1) dayLabel = "Tmrw";
+
+        const isWorking = docWorkingDays.length === 0 || docWorkingDays.includes(dayCode);
+        if (isWorking) {
+            pill.classList.add("is-working");
+        } else {
+            pill.classList.add("is-off");
+        }
+
+        pill.innerHTML = `
+            <div class="date-pill-day">${dayLabel}</div>
+            <div class="date-pill-num">${d.getDate()}</div>
+            <div class="date-pill-status ${isWorking ? 'status-avail' : 'status-off'}">${isWorking ? 'Open' : 'Off'}</div>
+        `;
+
+        if (iso === dateInput.value) {
+            pill.classList.add("selected");
+        }
+
+        pill.addEventListener("click", function () {
+            document.querySelectorAll(".date-pill").forEach(p => p.classList.remove("selected"));
+            pill.classList.add("selected");
+            dateInput.value = iso;
+            loadSlotsForCurrentDate();
+        });
+
+        dateStrip.appendChild(pill);
+    }
+}
+
+dateInput.addEventListener("change", function () {
+    document.querySelectorAll(".date-pill").forEach(p => {
+        p.classList.toggle("selected", p.dataset.date === dateInput.value);
+    });
+    loadSlotsForCurrentDate();
+});
+
+// 5. Load Slots for Date
+function loadSlotsForCurrentDate() {
+    const docId = doctorSelect.value;
+    const targetDate = dateInput.value;
+
+    if (!docId || !targetDate) return;
+
+    selectedSlot = null;
+    hiddenSlotStart.value = "";
+    hiddenSlotEnd.value = "";
+    hiddenTimeSlot.value = "";
+    setStep2NextEnabled(false);
+
+    slotsContainer.innerHTML = "";
+    offDayBanner.style.display = "none";
+    slotsLoading.style.display = "block";
+    slotsCountBadge.style.display = "none";
+
+    fetch("{% url 'api-available-slots' %}?doctor_id=" + encodeURIComponent(docId) + "&date=" + encodeURIComponent(targetDate))
+        .then(res => res.json())
+        .then(data => {
+            slotsLoading.style.display = "none";
+
+            if (!data.success || !data.slots || data.slots.length === 0) {
+                renderOffDayBanner(data);
+                return;
+            }
+
+            currentSlots = data.slots;
+            renderSlots(data.slots);
+        })
+        .catch(err => {
+            slotsLoading.style.display = "none";
+            renderOffDayBanner(null);
+            console.error(err);
+        });
+}
+
+function setStep2NextEnabled(enabled, slotLabel) {
+    step2NextBtn.disabled = !enabled;
+    step2NextBtn.style.opacity = enabled ? "1" : "0.6";
+    step2NextBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+
+    if (enabled && slotLabel) {
+        step2Tip.classList.add("valid");
+        step2Tip.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Selected Slot: ' + slotLabel + '. Click Next to select token.</span>';
+    } else {
+        step2Tip.classList.remove("valid");
+        step2Tip.innerHTML = '<i class="fa-solid fa-circle-info"></i> <span>Select an available time slot above to continue</span>';
+    }
+}
+
+function renderSlots(slots) {
+    slotsContainer.innerHTML = "";
+    slotsCountBadge.textContent = slots.length + " Available Slot" + (slots.length > 1 ? "s" : "");
+    slotsCountBadge.style.display = "inline-flex";
+
+    slots.forEach(slot => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-btn" + (slot.is_full ? " disabled" : "");
+        if (slot.is_full) btn.disabled = true;
+
+        btn.innerHTML = `
+            <div class="slot-time"><i class="fa-regular fa-clock"></i> ${slot.label}</div>
+            <div class="slot-cap">
+                ${slot.is_full ? '<strong style="color: #ef4444;">FULLY BOOKED</strong>' : slot.available_count + ' of ' + slot.tokens_per_slot + ' tokens available'}
+            </div>
+        `;
+
+        btn.addEventListener("click", function () {
+            if (slot.is_full) return;
+            document.querySelectorAll(".slot-btn").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+
+            selectedSlot = slot;
+            hiddenSlotStart.value = slot.start_time;
+            hiddenSlotEnd.value = slot.end_time;
+            hiddenTimeSlot.value = slot.label;
+
+            setStep2NextEnabled(true, slot.label);
+        });
+
+        slotsContainer.appendChild(btn);
+    });
+}
+
+// 6. Handle Off-Day & 1-Click Jump
+function renderOffDayBanner(data) {
+    offDayBanner.style.display = "flex";
+    const docName = currentDoctor ? currentDoctor.name : "The doctor";
+    const sched = (data && data.doctor && data.doctor.schedule_summary) ? data.doctor.schedule_summary : (currentDoctor ? currentDoctor.schedule_summary : "scheduled consultation hours");
+
+    offDayText.innerHTML = `<div><strong>${docName}</strong> is not scheduled for consultations on this date.<br><span style="font-size: 13px; opacity: 0.9;">Regular schedule: ${sched}</span></div>`;
+
+    // Find next available date in the upcoming 14 days
+    const workingDays = (data && data.doctor && data.doctor.available_days) || (currentDoctor && currentDoctor.available_days) || [];
+    let nextDateStr = null;
+    let nextDateLabel = "";
+
+    const selectedD = new Date(dateInput.value + "T00:00:00");
+    for (let i = 1; i <= 14; i++) {
+        const testD = new Date(selectedD);
+        testD.setDate(selectedD.getDate() + i);
+        const dayCode = DAY_CODES[testD.getDay()];
+        if (workingDays.length === 0 || workingDays.includes(dayCode)) {
+            nextDateStr = formatLocalISODate(testD);
+            const daysNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            nextDateLabel = `${daysNames[testD.getDay()]}, ${monthNames[testD.getMonth()]} ${testD.getDate()}`;
+            break;
+        }
+    }
+
+    if (nextDateStr) {
+        btnJumpNextDate.style.display = "inline-flex";
+        btnJumpNextDateText.textContent = "Switch to " + nextDateLabel;
+        btnJumpNextDate.onclick = function () {
+            dateInput.value = nextDateStr;
+            document.querySelectorAll(".date-pill").forEach(p => {
+                p.classList.toggle("selected", p.dataset.date === nextDateStr);
+            });
+            loadSlotsForCurrentDate();
+        };
+    } else {
+        btnJumpNextDate.style.display = "none";
+    }
+}
+
+// 7. Step 3: Load Tokens Grid
+function loadTokensForSelectedSlot() {
+    if (!selectedSlot) return;
+
+    selectedToken = null;
+    hiddenTokenNum.value = "";
+    setStep3NextEnabled(false);
+    liveSelectionBanner.style.display = "none";
+
+    document.getElementById("step3Subtitle").textContent = "Time Slot: " + selectedSlot.label + " • Date: " + dateInput.value + " • Dr. " + currentDoctor.name;
+
+    tokensGrid.innerHTML = "";
+    tokensLoading.style.display = "block";
+    tokensAvailableBadge.textContent = "";
+
+    fetch("{% url 'api-slot-tokens' %}?doctor_id=" + encodeURIComponent(doctorSelect.value) + "&date=" + encodeURIComponent(dateInput.value) + "&slot_start_time=" + encodeURIComponent(selectedSlot.start_time))
+        .then(res => res.json())
+        .then(data => {
+            tokensLoading.style.display = "none";
+            if (!data.success || !data.tokens) return;
+
+            tokensAvailableBadge.textContent = data.available_count + " of " + data.tokens_per_slot + " Tokens Free";
+            renderTokens(data.tokens);
+        })
+        .catch(err => {
+            tokensLoading.style.display = "none";
+            console.error(err);
+        });
+}
+
+function setStep3NextEnabled(enabled, tokenNum) {
+    step3NextBtn.disabled = !enabled;
+    step3NextBtn.style.opacity = enabled ? "1" : "0.6";
+    step3NextBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+
+    if (enabled && tokenNum) {
+        step3Tip.classList.add("valid");
+        step3Tip.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Token #' + String(tokenNum).padStart(3, '0') + ' selected. Click Next to review.</span>';
+    } else {
+        step3Tip.classList.remove("valid");
+        step3Tip.innerHTML = '<i class="fa-solid fa-circle-info"></i> <span>Click on any available token number above to proceed</span>';
+    }
+}
+
+function renderTokens(tokens) {
+    tokensGrid.innerHTML = "";
+
+    tokens.forEach(tok => {
+        const card = document.createElement("div");
+        card.className = "token-card " + (tok.is_available ? "available" : "booked");
+        card.title = tok.is_available ? "Click to select Token #" + tok.formatted_token_number : "Token #" + tok.formatted_token_number + " is already taken";
+
+        card.innerHTML = `
+            <div class="token-num">#${tok.formatted_token_number}</div>
+            <div class="token-tag">${tok.is_available ? 'FREE' : 'TAKEN'}</div>
+        `;
+
+        if (tok.is_available) {
+            card.addEventListener("click", function () {
+                document.querySelectorAll(".token-card").forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+
+                selectedToken = tok.token_number;
+                hiddenTokenNum.value = tok.token_number;
+
+                // Live Selection Highlight
+                liveSelectionBanner.style.display = "flex";
+                liveSelectionText.textContent = dateInput.value + " • " + selectedSlot.label + " • Dr. " + currentDoctor.name;
+                liveTokenBadge.textContent = "#" + tok.formatted_token_number;
+
+                setStep3NextEnabled(true, tok.token_number);
+            });
+        }
+
+        tokensGrid.appendChild(card);
+    });
+}
+
+// 8. Step 4: Populate Review Card
+function populateReview() {
+    revDept.textContent = departmentSelect.options[departmentSelect.selectedIndex]?.text || "-";
+    revDoctor.textContent = currentDoctor ? currentDoctor.name : "-";
+    revDate.textContent = dateInput.value;
+    revSlot.textContent = selectedSlot ? selectedSlot.label : "-";
+    revToken.textContent = selectedToken ? ("TOKEN #" + String(selectedToken).padStart(3, "0")) : "-";
+    revReason.textContent = reasonInput.value.trim() || "Routine consultation";
+}
+
+// Prevent double submission on step 4 confirm
+document.getElementById("bookingForm").addEventListener("submit", function () {
+    const btn = document.getElementById("btnConfirmBooking");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Reserving Token...';
+    }
+});
+
+// Initialize on DOM ready
+document.addEventListener("DOMContentLoaded", function () {
+    buildDateStrip();
+
+    // If department has a preselected value, trigger doctor loading
+    if (departmentSelect.value) {
+        departmentSelect.dispatchEvent(new Event("change"));
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Laboratory & Diagnostic Orders — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-pills {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .filter-pill {
+        padding: 8px 16px;
+        border-radius: var(--radius-full);
+        background: white;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    .filter-pill:hover {
+        background: var(--bg-alt);
+        color: var(--text-primary);
+    }
+    .filter-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .status-badge-ordered {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .status-badge-sample {
+        background: #e0e7ff;
+        color: #3730a3;
+        border: 1px solid #c7d2fe;
+    }
+    .status-badge-progress {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+    .status-badge-completed {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Diagnostic Lab Orders & Investigations
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                Monitor clinical pathology orders, track sample collection, and update diagnostic test findings.
+            </p>
+        </div>
+        <div>
+            <span class="badge badge-booked" style="font-size: 13.5px; padding: 7px 14px;">
+                <i class="fa-solid fa-flask-vial"></i> {{ counts.all }} Total Orders
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter Pills -->
+    <div class="filter-pills">
+        <a href="?status=all{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'all' %}active{% endif %}">
+            <span>All Orders</span>
+            <span style="opacity: 0.85;">({{ counts.all }})</span>
+        </a>
+        <a href="?status=ORDERED{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'ORDERED' %}active{% endif %}">
+            <i class="fa-solid fa-clock"></i>
+            <span>Pending Sample</span>
+            <span style="opacity: 0.85;">({{ counts.ordered }})</span>
+        </a>
+        <a href="?status=SAMPLE_COLLECTED{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'SAMPLE_COLLECTED' %}active{% endif %}">
+            <i class="fa-solid fa-vial"></i>
+            <span>Sample Collected</span>
+            <span style="opacity: 0.85;">({{ counts.sample }})</span>
+        </a>
+        <a href="?status=IN_PROGRESS{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'IN_PROGRESS' %}active{% endif %}">
+            <i class="fa-solid fa-spinner"></i>
+            <span>In Testing</span>
+            <span style="opacity: 0.85;">({{ counts.in_progress }})</span>
+        </a>
+        <a href="?status=COMPLETED{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'COMPLETED' %}active{% endif %}">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Completed</span>
+            <span style="opacity: 0.85;">({{ counts.completed }})</span>
+        </a>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card" style="margin-bottom: 22px; padding: 16px 20px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <div style="flex: 1; min-width: 240px; position: relative;">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Search by patient name, test name, or doctor..." class="form-control" style="padding-left: 38px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <span>Filter</span>
+            </button>
+            {% if search_query %}
+            <a href="?status={{ status_filter }}" class="btn btn-outline">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Orders Table -->
+    {% if orders %}
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Diagnostic Test</th>
+                            <th>Patient</th>
+                            <th>Ordering Physician</th>
+                            <th>Ordered Date</th>
+                            <th>Current Status</th>
+                            <th>Results / Findings</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ord in orders %}
+                        <tr>
+                            <td style="font-weight: 700; color: var(--text-muted);">
+                                #{{ ord.id|stringformat:"04d" }}
+                            </td>
+                            <td>
+                                <strong style="font-size: 14px; color: var(--text-primary); display: block;">
+                                    {{ ord.test_name }}
+                                </strong>
+                                {% if ord.clinical_indication %}
+                                    <span style="font-size: 12px; color: var(--text-muted);">
+                                        Indication: {{ ord.clinical_indication }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ ord.patient }}</strong>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    {{ ord.patient.user.phone_number|default:"No phone" }}
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; color: var(--secondary);">
+                                    Dr. {{ ord.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ ord.doctor.user.last_name }}
+                                </span>
+                                <div style="font-size: 11.5px; color: var(--primary);">
+                                    {{ ord.doctor.department.name }}
+                                </div>
+                            </td>
+                            <td style="font-size: 12.5px;">
+                                {{ ord.ordered_at|date:"M j, Y H:i" }}
+                            </td>
+                            <td>
+                                {% if ord.status == 'ORDERED' %}
+                                    <span class="badge status-badge-ordered"><i class="fa-solid fa-clock"></i> Ordered</span>
+                                {% elif ord.status == 'SAMPLE_COLLECTED' %}
+                                    <span class="badge status-badge-sample"><i class="fa-solid fa-vial"></i> Sample Collected</span>
+                                {% elif ord.status == 'IN_PROGRESS' %}
+                                    <span class="badge status-badge-progress"><i class="fa-solid fa-spinner"></i> In Progress</span>
+                                {% elif ord.status == 'COMPLETED' %}
+                                    <span class="badge status-badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled">{{ ord.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="max-width: 200px; font-size: 12.5px;">
+                                {% if ord.results_summary %}
+                                    <span style="color: var(--text-primary);">{{ ord.results_summary|truncatechars:70 }}</span>
+                                {% else %}
+                                    <em style="color: var(--text-muted);">Awaiting lab results</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    {% if ord.status == 'ORDERED' %}
+                                    <form method="post" action="{% url 'update-lab-order-status' ord.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="SAMPLE_COLLECTED">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-outline btn-sm" title="Mark Sample Collected">
+                                            <i class="fa-solid fa-vial"></i> Collect
+                                        </button>
+                                    </form>
+                                    {% elif ord.status == 'SAMPLE_COLLECTED' %}
+                                    <form method="post" action="{% url 'update-lab-order-status' ord.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="IN_PROGRESS">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-outline btn-sm" title="Begin Lab Analysis">
+                                            <i class="fa-solid fa-microscope"></i> Start
+                                        </button>
+                                    </form>
+                                    {% elif ord.status == 'IN_PROGRESS' %}
+                                    <form method="post" action="{% url 'update-lab-order-status' ord.id %}" style="display: flex; gap: 4px;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="COMPLETED">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-primary btn-sm" title="Complete Test">
+                                            <i class="fa-solid fa-check"></i> Done
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12px;">Finalized</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card empty-state" style="padding: 50px 20px;">
+            <div class="empty-state-icon">
+                <i class="fa-solid fa-flask-vial"></i>
+            </div>
+            <h3 class="empty-state-title">No Lab Orders Found</h3>
+            <p class="empty-state-text">
+                {% if search_query %}
+                    No laboratory orders matched your search query "{{ search_query }}".
+                {% else %}
+                    No laboratory orders currently match the selected filter.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Register New Patient — ClinicHub Front Desk{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registration-wrapper {
+        max-width: 840px;
+        margin: 0 auto;
+    }
+
+    .form-section-header {
+        font-size: 15.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 1.5px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    @media (max-width: 640px) {
+        .form-grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="registration-wrapper">
+
+        <!-- Navigation & Header -->
+        <div style="margin-bottom: 24px;">
+            <a href="{% url 'staff-dashboard' %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Reception Hub</span>
+            </a>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Front-Desk Patient Registration
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+                Register patients immediately at the front counter. Accounts are verified instantly with no email confirmation token needed.
+            </p>
+        </div>
+
+        <div class="card" style="padding: 30px;">
+            <form method="post" action="{% url 'staff-register-patient' %}" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>{{ form.non_field_errors.0 }}</span>
+                    </div>
+                {% endif %}
+
+                <!-- Section 1: Personal & Contact Information -->
+                <div style="margin-bottom: 26px;">
+                    <div class="form-section-header">
+                        <span class="icon-box icon-box-sm icon-box-primary">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <span>1. Patient Identity & Contact</span>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_first_name" class="form-label">First Name *</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="field-error">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_last_name" class="form-label">Last Name *</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="field-error">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_phone_number" class="form-label">Mobile / Contact Phone *</label>
+                            {{ form.phone_number }}
+                            {% if form.phone_number.errors %}
+                                <div class="field-error">{{ form.phone_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_email" class="form-label">Email Address (Optional)</label>
+                            {{ form.email }}
+                            <small class="field-help" style="font-size: 11.5px; color: var(--text-muted);">
+                                A unique clinic identifier is generated automatically if left blank.
+                            </small>
+                            {% if form.email.errors %}
+                                <div class="field-error">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_date_of_birth" class="form-label">Date of Birth</label>
+                            {{ form.date_of_birth }}
+                            {% if form.date_of_birth.errors %}
+                                <div class="field-error">{{ form.date_of_birth.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_gender" class="form-label">Gender</label>
+                            {{ form.gender }}
+                            {% if form.gender.errors %}
+                                <div class="field-error">{{ form.gender.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Health Details & Emergency Contact -->
+                <div style="margin-bottom: 28px;">
+                    <div class="form-section-header">
+                        <span class="icon-box icon-box-sm icon-box-primary">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </span>
+                        <span>2. Health Profile & Emergency Contact</span>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_blood_group" class="form-label">Blood Group</label>
+                            {{ form.blood_group }}
+                            <small class="field-help" style="font-size: 11.5px; color: var(--text-muted);">
+                                e.g. O+, A+, B+, AB-, O-
+                            </small>
+                            {% if form.blood_group.errors %}
+                                <div class="field-error">{{ form.blood_group.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_emergency_contact_name" class="form-label">Emergency Contact Name</label>
+                            {{ form.emergency_contact_name }}
+                            {% if form.emergency_contact_name.errors %}
+                                <div class="field-error">{{ form.emergency_contact_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_emergency_contact_phone" class="form-label">Emergency Phone Number</label>
+                            {{ form.emergency_contact_phone }}
+                            {% if form.emergency_contact_phone.errors %}
+                                <div class="field-error">{{ form.emergency_contact_phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_address" class="form-label">Residential Address</label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                                <div class="field-error">{{ form.address.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submission Actions -->
+                <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <a href="{% url 'staff-dashboard' %}" class="btn btn-outline" style="min-width: 120px;">
+                        <span>Cancel</span>
+                    </a>
+
+                    <button type="submit" name="action" value="save" class="btn btn-outline" style="font-weight: 600;">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save Record Only</span>
+                    </button>
+
+                    <button type="submit" name="action" value="book_walkin" class="btn btn-primary btn-lg" style="font-weight: 700; box-shadow: var(--shadow-sm);">
+                        <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+                        <span>Save & Book Walk-In Now</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

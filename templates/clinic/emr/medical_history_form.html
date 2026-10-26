@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Medical History & Allergies — {{ patient }} | ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 15px;">
+        <a href="{% if next_url %}{{ next_url }}{% elif user.user_type == 'DOCTOR' %}{% url 'doctor-dashboard' %}{% else %}{% url 'staff-patient-search' %}{% endif %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Return</span>
+        </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    Enduring Medical File & Allergy Profile
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 4px 0 0 0;">
+                    Patient: <strong>{{ patient }}</strong> (DOB: {{ patient.date_of_birth|default:"Not specified" }})
+                </p>
+            </div>
+            <span class="badge badge-booked">
+                <i class="fa-solid fa-shield-halved"></i> Clinical Safety
+            </span>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            {% if next_url %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+
+            <!-- Blood Group -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="id_blood_group" class="form-label">
+                    <i class="fa-solid fa-droplet" style="color: #ef4444;"></i> Blood Group
+                </label>
+                {{ form.blood_group }}
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    e.g. A+, B+, O+, AB+, A-, B-, O-, AB-
+                </div>
+            </div>
+
+            <!-- Allergies Alert Form -->
+            <div class="form-group" style="margin-bottom: 20px; background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: var(--radius-md);">
+                <label for="id_allergies" class="form-label" style="color: #991b1b; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Known Drug & Food Allergies (CRITICAL)
+                </label>
+                {{ form.allergies }}
+                <div style="font-size: 12px; color: #b91c1c; margin-top: 4px;">
+                    List specific medications, antibiotic classes (e.g. Penicillin, Sulfa drugs, NSAIDs), foods, or latex allergies.
+                </div>
+            </div>
+
+            <!-- Chronic Conditions -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="id_chronic_conditions" class="form-label">
+                    <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i> Chronic Conditions & Long-Term Illnesses
+                </label>
+                {{ form.chronic_conditions }}
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    e.g. Essential Hypertension, Type 2 Diabetes Mellitus, Bronchial Asthma, Hypothyroidism.
+                </div>
+            </div>
+
+            <!-- Current Daily Medications -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="id_current_medications" class="form-label">
+                    <i class="fa-solid fa-pills" style="color: #0284c7;"></i> Regular Daily Medications Taken by Patient
+                </label>
+                {{ form.current_medications }}
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Include medication name, strength, and dosing schedule.
+                </div>
+            </div>
+
+            <!-- Past Surgeries -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="id_past_surgeries" class="form-label">
+                    <i class="fa-solid fa-hospital" style="color: var(--secondary);"></i> Past Surgeries & Major Hospitalizations
+                </label>
+                {{ form.past_surgeries }}
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Include procedure name and approximate year.
+                </div>
+            </div>
+
+            <!-- Family Medical History -->
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label for="id_family_medical_history" class="form-label">
+                    <i class="fa-solid fa-dna" style="color: #8b5cf6;"></i> Family & Hereditary Medical History
+                </label>
+                {{ form.family_medical_history }}
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Hereditary heart disease, diabetes, cancer, or genetic disorders.
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; pt: 15px; border-top: 1px solid var(--border-color);">
+                <a href="{% if next_url %}{{ next_url }}{% elif user.user_type == 'DOCTOR' %}{% url 'doctor-dashboard' %}{% else %}{% url 'staff-patient-search' %}{% endif %}" class="btn btn-outline">
+                    Cancel
+                </a>
+
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Medical File</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

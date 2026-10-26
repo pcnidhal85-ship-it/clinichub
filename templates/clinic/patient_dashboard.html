@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Dashboard — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+    .stat-card {
+        background: white;
+        padding: 22px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    .stat-info .stat-value {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+    .stat-info .stat-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Header -->
+    <!-- Welcome Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Welcome back, {{ patient.user.first_name|default:patient.user.username }}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                Your health portal overview. Track upcoming visits, real-time queue tokens, and doctor advice.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'create-appointment' %}" class="btn btn-primary">
+                <i class="fa-regular fa-calendar-plus"></i>
+                <span>Book Appointment</span>
+            </a>
+            <a href="{% url 'my-appointments' %}" class="btn btn-outline">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>My Appointments</span>
+            </a>
+            <a href="{% url 'patient-prescriptions' %}" class="btn btn-outline">
+                <i class="fa-solid fa-file-prescription"></i>
+                <span>My Prescriptions</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;">
+                <i class="fa-regular fa-calendar-days"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ appointment_count }}</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ completed_count }}</div>
+                <div class="stat-label">Completed Consultations</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #fdf2f8; color: #db2777;">
+                <i class="fa-solid fa-file-prescription"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ prescription_count }}</div>
+                <div class="stat-label">Prescriptions Issued</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
+                <i class="fa-solid fa-stethoscope"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">
+                    {% if upcoming_appointment %}1{% else %}0{% endif %}
+                </div>
+                <div class="stat-label">Upcoming Scheduled</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next / Upcoming Appointment -->
+    <div class="card" style="margin-bottom: 25px;">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-regular fa-bell" style="color: var(--primary);"></i>
+                <span>Next Upcoming Appointment</span>
+            </h3>
+            {% if upcoming_appointment %}
+                <span class="badge badge-booked">
+                    <i class="fa-solid fa-clock"></i> Confirmed Booking
+                </span>
+            {% endif %}
+        </div>
+
+        {% if upcoming_appointment %}
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <div style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ upcoming_appointment.doctor }}
+                    </div>
+                    <div style="color: var(--primary); font-weight: 600; font-size: 14px; margin-bottom: 14px;">
+                        {{ upcoming_appointment.doctor.department.name }} &bull; {{ upcoming_appointment.doctor.specialization }}
+                    </div>
+
+                    <div style="display: flex; gap: 20px; font-size: 14px; color: var(--text-secondary); flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-regular fa-calendar" style="color: var(--primary);"></i>
+                            <span><strong>Date:</strong> {{ upcoming_appointment.appointment_date }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+                            <span><strong>Time Slot:</strong> {% if upcoming_appointment.time_slot %}{{ upcoming_appointment.time_slot }}{% else %}{{ upcoming_appointment.appointment_time|time:"h:i A" }}{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-alt); padding: 18px 26px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border-color);">
+                    <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 4px;">
+                        Queue Token
+                    </div>
+                    <div style="font-size: 36px; font-weight: 800; color: var(--primary); line-height: 1.1;">
+                        #{{ upcoming_appointment.token.formatted_token_number|default:"-" }}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+                <a href="{% url 'reschedule-appointment' upcoming_appointment.id %}" class="btn btn-outline btn-sm">
+                    <i class="fa-regular fa-calendar-days"></i>
+                    <span>Reschedule Visit</span>
+                </a>
+                <a href="{% url 'cancel-appointment' upcoming_appointment.id %}" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Cancel Visit</span>
+                </a>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-regular fa-calendar-xmark"></i>
+                </div>
+                <h4 class="empty-state-title">
+                    No Upcoming Appointments Scheduled
+                </h4>
+                <p class="empty-state-text">
+                    You don't have any pending visits. Select a doctor and pick a convenient time slot whenever you need medical care.
+                </p>
+                <a href="{% url 'create-appointment' %}" class="btn btn-primary btn-sm">
+                    <i class="fa-regular fa-calendar-plus"></i>
+                    <span>Schedule an Appointment</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Patient Info Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-regular fa-id-card" style="color: var(--primary);"></i>
+                <span>Patient Profile Information</span>
+            </h3>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 14px;">
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 12px; text-transform: uppercase;">Full Name</span>
+                <strong>{{ patient.user.get_full_name|default:patient.user.username }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 12px; text-transform: uppercase;">Email</span>
+                <span>{{ patient.user.email }}</span>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 12px; text-transform: uppercase;">Phone Number</span>
+                <span>{{ patient.user.phone_number|default:"Not provided" }}</span>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 12px; text-transform: uppercase;">Blood Group</span>
+                <span class="badge badge-booked">{{ patient.blood_group|default:"Not specified" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

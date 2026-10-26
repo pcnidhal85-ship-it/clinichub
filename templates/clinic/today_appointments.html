@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Today's Appointments & Reception Check-in — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-pills-bar {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        margin-bottom: 18px;
+        scrollbar-width: thin;
+    }
+
+    .filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13.5px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--text-secondary);
+        background: white;
+        border: 1px solid var(--border-color);
+        white-space: nowrap;
+        transition: var(--transition);
+    }
+
+    .filter-pill:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .filter-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(8, 127, 140, 0.25);
+    }
+
+    .filter-pill-badge {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 12px;
+        background: var(--bg-alt);
+        color: var(--text-primary);
+    }
+
+    .filter-pill.active .filter-pill-badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+
+    .search-filter-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 22px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header with Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Today's Appointments & Reception Desk
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+                Arrival check-in, live queue status, and schedule for <strong>{{ today|date:"l, F j, Y" }}</strong>.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'staff-dashboard' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Staff Hub</span>
+            </a>
+            <a href="{% url 'walk-in-booking' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+                <span>Register Walk-In</span>
+            </a>
+            <a href="{% url 'queue' %}" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-users-line"></i>
+                <span>Live Waiting Queue</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Filter Pills -->
+    <div class="filter-pills-bar">
+        <a href="?status=BOOKED{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'BOOKED' %}active{% endif %}">
+            <i class="fa-regular fa-clock"></i>
+            <span>Pending Check-In</span>
+            <span class="filter-pill-badge">{{ count_booked }}</span>
+        </a>
+
+        <a href="?status=CHECKED_IN{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'CHECKED_IN' %}active{% endif %}">
+            <i class="fa-solid fa-hourglass-half"></i>
+            <span>Checked-In / Waiting</span>
+            <span class="filter-pill-badge">{{ count_checked_in }}</span>
+        </a>
+
+        <a href="?status=IN_CONSULTATION{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'IN_CONSULTATION' %}active{% endif %}">
+            <i class="fa-solid fa-stethoscope"></i>
+            <span>In Consultation</span>
+            <span class="filter-pill-badge">{{ count_in_consult }}</span>
+        </a>
+
+        <a href="?status=COMPLETED{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'COMPLETED' %}active{% endif %}">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Completed</span>
+            <span class="filter-pill-badge">{{ count_completed }}</span>
+        </a>
+
+        <a href="?status=CANCELLED{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'CANCELLED' %}active{% endif %}">
+            <i class="fa-solid fa-ban"></i>
+            <span>Cancelled</span>
+            <span class="filter-pill-badge">{{ count_cancelled }}</span>
+        </a>
+
+        <a href="?status=ALL{% if doctor_filter %}&doctor={{ doctor_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="filter-pill {% if status_filter == 'ALL' %}active{% endif %}">
+            <i class="fa-solid fa-list-check"></i>
+            <span>All Today</span>
+            <span class="filter-pill-badge">{{ count_all }}</span>
+        </a>
+    </div>
+
+    <!-- Search & Doctor Filter Bar -->
+    <div class="search-filter-card">
+        <form method="get" action="{% url 'today-appointments' %}" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; flex: 1;">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+
+            <!-- Doctor Dropdown Filter -->
+            <div style="min-width: 220px;">
+                <select name="doctor" class="form-select" onchange="this.form.submit()" style="height: 40px; font-size: 13.5px; padding: 0 12px;">
+                    <option value="">All Attending Physicians</option>
+                    {% for doc in all_doctors %}
+                        <option value="{{ doc.id }}" {% if doctor_filter == doc.id|stringformat:"s" %}selected{% endif %}>
+                            Dr. {{ doc.user.last_name }} ({{ doc.department.name }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Search input -->
+            <div style="position: relative; flex: 1; min-width: 200px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 13px; color: var(--text-muted); font-size: 13px;"></i>
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search_query }}"
+                    placeholder="Filter by patient name, phone, or token..."
+                    class="form-control"
+                    style="padding-left: 34px; height: 40px; font-size: 13.5px;"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-outline btn-sm" style="height: 40px; padding: 0 16px;">
+                <span>Filter</span>
+            </button>
+
+            {% if doctor_filter or search_query %}
+                <a href="{% url 'today-appointments' %}?status={{ status_filter }}" class="btn btn-outline btn-sm" style="height: 40px; padding: 0 12px;" title="Reset Filters">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+            {% endif %}
+        </form>
+
+        <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">
+            Showing {{ appointments|length }} appointment{{ appointments|length|pluralize }}
+        </span>
+    </div>
+
+    <!-- Appointments Table Card -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="display: flex; align-items: center; gap: 8px; font-size: 16px;">
+                <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i>
+                <span>
+                    {% if status_filter == 'BOOKED' %}
+                        Pending Patient Check-Ins
+                    {% elif status_filter == 'CHECKED_IN' %}
+                        Checked-In Patients (Waiting in Queue)
+                    {% elif status_filter == 'IN_CONSULTATION' %}
+                        Currently in Consultation
+                    {% elif status_filter == 'COMPLETED' %}
+                        Completed Visits for Today
+                    {% elif status_filter == 'CANCELLED' %}
+                        Cancelled Bookings
+                    {% else %}
+                        All Today's Schedule
+                    {% endif %}
+                </span>
+            </h3>
+            <span class="badge badge-booked">
+                {{ appointments|length }} records
+            </span>
+        </div>
+
+        {% if appointments %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Token</th>
+                            <th>Patient Information</th>
+                            <th>Doctor & Specialty</th>
+                            <th>Scheduled Slot</th>
+                            <th>Status</th>
+                            <th>Reason / Clinical Notes</th>
+                            <th style="width: 170px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>
+                                <strong style="font-size: 16px; color: var(--primary);">
+                                    #{{ appointment.token.formatted_token_number|default:"-" }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-primary);">
+                                    {{ appointment.patient }}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                                    {% if appointment.patient.user.phone_number %}
+                                        <span><i class="fa-solid fa-phone" style="font-size: 10px;"></i> {{ appointment.patient.user.phone_number }}</span>
+                                    {% endif %}
+                                    <span>ID #{{ appointment.patient.id }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">Dr. {{ appointment.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ appointment.doctor.user.last_name }}</div>
+                                <div style="font-size: 12.5px; color: var(--text-secondary);">
+                                    {{ appointment.doctor.department.name }}
+                                </div>
+                            </td>
+                            <td>
+                                <strong style="color: var(--text-primary); display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px;">
+                                    <i class="fa-regular fa-clock" style="color: var(--primary); font-size: 12px;"></i>
+                                    {% if appointment.time_slot %}
+                                        {{ appointment.time_slot }}
+                                    {% else %}
+                                        {{ appointment.appointment_time|time:"h:i A" }}
+                                    {% endif %}
+                                </strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ appointment.status|lower }}">
+                                    {{ appointment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if appointment.reason %}
+                                    <span style="font-size: 13px; color: var(--text-secondary); display: block;">
+                                        {{ appointment.reason|truncatechars:45 }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12.5px;">General consultation</span>
+                                {% endif %}
+                                {% if appointment.notes %}
+                                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                                        <i class="fa-solid fa-clipboard" style="font-size: 10px;"></i> {{ appointment.notes|truncatechars:40 }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                {% if appointment.status == "BOOKED" %}
+                                    <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
+                                        <form method="post" action="{% url 'check-in-patient' appointment.id %}" style="display: inline; flex: 1;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; padding: 5px 8px; font-size: 12.5px;">
+                                                <i class="fa-solid fa-clipboard-check"></i>
+                                                <span>Check In</span>
+                                            </button>
+                                        </form>
+
+                                        <a href="{% url 'staff-reschedule-appointment' appointment.id %}" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px;" title="Reschedule Appointment">
+                                            <i class="fa-solid fa-arrows-rotate"></i>
+                                        </a>
+
+                                        <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px; color: #dc2626;" title="Cancel Appointment">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </a>
+                                    </div>
+                                {% elif appointment.status == "CHECKED_IN" %}
+                                    <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
+                                        <a href="{% url 'queue' %}?doctor={{ appointment.doctor.id }}" class="btn btn-outline btn-sm" style="flex: 1; padding: 5px 8px; font-size: 12px; color: #0284c7; border-color: #0284c7;">
+                                            <i class="fa-solid fa-hourglass-half"></i>
+                                            <span>In Queue</span>
+                                        </a>
+                                        <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px; color: #dc2626;" title="Cancel / No-Show">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </a>
+                                    </div>
+                                {% elif appointment.status == "IN_CONSULTATION" %}
+                                    <span class="badge badge-in_consultation" style="font-size: 12px;">
+                                        <i class="fa-solid fa-stethoscope"></i> Consulting
+                                    </span>
+                                {% elif appointment.status == "COMPLETED" %}
+                                    <span class="badge badge-completed" style="font-size: 12px;">
+                                        <i class="fa-solid fa-circle-check"></i> Done
+                                    </span>
+                                {% elif appointment.status == "CANCELLED" %}
+                                    <span class="badge badge-cancelled" style="font-size: 12px;">
+                                        <i class="fa-solid fa-ban"></i> Cancelled
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12px;">&mdash;</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <h3 class="empty-state-title">
+                    No Appointments Found
+                </h3>
+                <p class="empty-state-text">
+                    {% if search_query or doctor_filter %}
+                        No appointments matched your search and filter criteria for today.
+                    {% elif status_filter == 'BOOKED' %}
+                        All scheduled patients for today have arrived and been checked in, or no bookings remain for this date.
+                    {% else %}
+                        No appointments currently recorded under status "{{ status_filter }}" for today.
+                    {% endif %}
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+                    {% if doctor_filter or search_query %}
+                        <a href="{% url 'today-appointments' %}?status={{ status_filter }}" class="btn btn-outline btn-sm">
+                            <i class="fa-solid fa-xmark"></i>
+                            <span>Clear Filter</span>
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'queue' %}" class="btn btn-outline btn-sm">
+                        <i class="fa-solid fa-users-line"></i>
+                        <span>Check Waiting Room Queue</span>
+                    </a>
+                    <a href="{% url 'walk-in-booking' %}" class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+                        <span>Register Walk-In Patient</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

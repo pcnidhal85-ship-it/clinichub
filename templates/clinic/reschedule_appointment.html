@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Reschedule Consultation — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .booking-wrapper {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+    .current-slot-card {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 640px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .form-section {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .form-section:last-of-type {
+        border-bottom: none;
+    }
+    .form-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="booking-wrapper">
+        <div style="margin-bottom: 24px;">
+            <a href="{% if is_staff_view %}{% url 'today-appointments' %}{% else %}{% url 'my-appointments' %}{% endif %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to {% if is_staff_view %}Today's Appointments{% else %}My Appointments{% endif %}</span>
+            </a>
+            <h1 style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-top: 10px; margin-bottom: 6px;">
+                Reschedule {% if is_staff_view %}Patient Appointment{% else %}Your Consultation{% endif %}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 15px;">
+                {% if is_staff_view %}
+                    Rescheduling for patient <strong>{{ appointment.patient }}</strong>. Select a new date, time, or doctor.
+                {% else %}
+                    Select a new date, time, or specialist. Your queue token will be updated automatically upon confirmation.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Current Booking Summary Box -->
+        <div class="current-slot-card">
+            <div>
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px;">
+                    Current Scheduled Visit
+                </div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                    {% if is_staff_view %}Patient: {{ appointment.patient }} &bull; {% endif %}
+                    Dr. {{ appointment.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ appointment.doctor.user.last_name }}
+                    <span class="user-badge user-badge-doctor" style="font-size: 12px; margin-left: 6px;">{{ appointment.doctor.department.name }}</span>
+                </div>
+                <div style="font-size: 14px; color: var(--text-secondary); display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                    <span><i class="fa-regular fa-calendar" style="color: var(--primary);"></i> {{ appointment.appointment_date|date:"l, F j, Y" }}</span>
+                    <span><i class="fa-regular fa-clock" style="color: var(--primary);"></i> {{ appointment.appointment_time|time:"h:i A" }}</span>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">
+                    Current Token
+                </div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--primary);">
+                    #{% if token %}{{ token.formatted_token_number }}{% else %}-{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="post" action="{% if is_staff_view %}{% url 'staff-reschedule-appointment' appointment.id %}{% else %}{% url 'reschedule-appointment' appointment.id %}{% endif %}" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ form.non_field_errors.0 }}</span>
+                    </div>
+                {% endif %}
+
+                <!-- Section 1: Department & Doctor Selection -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-user-doctor"></i></span>
+                        <span>1. Specialty & Consulting Physician</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="id_department" class="form-label">Medical Department *</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="field-error">{{ form.department.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_doctor" class="form-label">Consulting Doctor *</label>
+                            {{ form.doctor }}
+                            {% if form.doctor.errors %}
+                                <div class="field-error">{{ form.doctor.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: New Date & Time Slot -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-regular fa-calendar-check"></i></span>
+                        <span>2. New Consultation Date & Time Slot</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="id_appointment_date" class="form-label">New Appointment Date *</label>
+                            {{ form.appointment_date }}
+                            {% if form.appointment_date.errors %}
+                                <div class="field-error">{{ form.appointment_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_appointment_time" class="form-label">New Time Slot *</label>
+                            {{ form.appointment_time }}
+                            {% if form.appointment_time.errors %}
+                                <div class="field-error">{{ form.appointment_time.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Reason / Symptoms -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-notes-medical"></i></span>
+                        <span>3. Reason for Consultation</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="id_reason" class="form-label">Brief description of symptoms or changes in health status</label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="field-error">{{ form.reason.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="background: var(--primary-light); border: 1px solid rgba(8, 127, 140, 0.2); padding: 15px 18px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 13.5px; color: var(--text-primary); display: flex; gap: 12px; align-items: center;">
+                    <i class="fa-solid fa-arrows-rotate" style="color: var(--primary); font-size: 18px;"></i>
+                    <span>Your current booking remains held until you confirm this new slot. Rescheduling releases your previous time slot for other patients.</span>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
+                    <a href="{% if is_staff_view %}{% url 'today-appointments' %}{% else %}{% url 'my-appointments' %}{% endif %}" class="btn btn-outline">
+                        <span>Keep Existing Schedule</span>
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span>Confirm Rescheduled Visit</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const departmentSelect = document.getElementById("id_department");
+        const doctorSelect = document.getElementById("id_doctor");
+
+        if (!departmentSelect || !doctorSelect) return;
+
+        departmentSelect.classList.add("form-select");
+        doctorSelect.classList.add("form-select");
+        
+        const dateInput = document.getElementById("id_appointment_date");
+        const timeInput = document.getElementById("id_appointment_time");
+        const reasonInput = document.getElementById("id_reason");
+        if (dateInput) dateInput.classList.add("form-control");
+        if (timeInput) timeInput.classList.add("form-control");
+        if (reasonInput) {
+            reasonInput.classList.add("form-control");
+            reasonInput.setAttribute("rows", "3");
+            reasonInput.setAttribute("placeholder", "E.g. Symptoms, routine checkup, changed schedule...");
+        }
+
+        departmentSelect.addEventListener("change", function () {
+            const departmentId = this.value;
+
+            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+
+            if (!departmentId) {
+                doctorSelect.innerHTML = '<option value="">Select a doctor</option>';
+                return;
+            }
+
+            fetch("{% url 'get-doctors' %}?department_id=" + encodeURIComponent(departmentId))
+                .then(response => response.json())
+                .then(data => {
+                    doctorSelect.innerHTML = '<option value="">Select a doctor</option>';
+                    const doctorList = data.doctors || [];
+
+                    if (doctorList.length === 0) {
+                        doctorSelect.innerHTML = '<option value="">No doctors available in this department</option>';
+                        return;
+                    }
+
+                    doctorList.forEach(function (item) {
+                        const option = document.createElement("option");
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        doctorSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    doctorSelect.innerHTML = '<option value="">Unable to load doctors</option>';
+                    console.error("Error fetching doctors:", error);
+                });
+        });
+    });
+</script>
+{% endblock %}

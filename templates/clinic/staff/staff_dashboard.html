@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}Front-Desk Reception Hub — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .staff-hero {
+        background: linear-gradient(135deg, #0c2340 0%, #087f8c 100%);
+        border-radius: var(--radius-lg);
+        padding: 30px 32px;
+        color: white;
+        margin-bottom: 28px;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .btn-hero-solid {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ffffff !important;
+        color: #087f8c !important;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 10px 20px;
+        border-radius: var(--radius-sm);
+        border: 1px solid #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .btn-hero-solid i {
+        color: #087f8c !important;
+    }
+    .btn-hero-solid:hover {
+        background: #f8fafc !important;
+        color: #0c2340 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+    }
+    .btn-hero-solid:hover i {
+        color: #0c2340 !important;
+    }
+
+    .btn-hero-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 10px 18px;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .btn-hero-outline i {
+        color: #ffffff !important;
+    }
+    .btn-hero-outline:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: #ffffff;
+        color: #ffffff !important;
+        transform: translateY(-2px);
+    }
+
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .action-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: var(--transition);
+        text-decoration: none;
+        color: var(--text-primary);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+    }
+
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .staff-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card-staff {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        transition: var(--transition);
+    }
+
+    .stat-card-staff:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-md);
+    }
+
+    .doctor-duty-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        transition: var(--transition);
+    }
+
+    .doctor-duty-card:hover {
+        border-color: var(--primary);
+        background: #fbfdfe;
+    }
+
+    .doctor-badge-duty {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .waiting-pill-live {
+        background: #fff4e5;
+        color: #b45309;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .consult-pill-live {
+        background: #ecfdf5;
+        color: #047857;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Staff Hub Hero -->
+    <div class="staff-hero">
+        <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-hospital"></i>
+                <span>Reception & Front-Desk Command Center</span>
+            </div>
+            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px; line-height: 1.2;">
+                Welcome, {{ user.first_name|default:user.username }}
+            </h1>
+            <p style="font-size: 14.5px; opacity: 0.9; margin: 0; max-width: 580px;">
+                {{ user.get_staff_role_display|default:"Clinic Receptionist" }} &bull; Today is <strong>{{ today|date:"l, F j, Y" }}</strong>. Manage patient intake, queues, and clinic flow.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <a href="{% url 'walk-in-booking' %}" class="btn-hero-solid">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>New Walk-In</span>
+            </a>
+            <a href="{% url 'queue' %}" class="btn-hero-outline">
+                <i class="fa-solid fa-users-line"></i>
+                <span>Live Waiting Queue</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Action Launchpad -->
+    <div class="quick-actions-grid">
+        <a href="{% url 'today-appointments' %}" class="action-card">
+            <div class="action-icon" style="background: #e0f2fe; color: #0284c7;">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px;">Check In Arrivals</div>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">Today's bookings & check-in</div>
+            </div>
+        </a>
+
+        <a href="{% url 'walk-in-booking' %}" class="action-card">
+            <div class="action-icon" style="background: #ecfdf5; color: #059669;">
+                <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px;">Walk-In Booking</div>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">On-the-spot queue tokens</div>
+            </div>
+        </a>
+
+        <a href="{% url 'staff-register-patient' %}" class="action-card">
+            <div class="action-icon" style="background: #fdf2f8; color: #db2777;">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px;">Register Patient</div>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">Quick front-desk registration</div>
+            </div>
+        </a>
+
+        <a href="{% url 'staff-patient-search' %}" class="action-card">
+            <div class="action-icon" style="background: #fef3c7; color: #d97706;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px;">Patient Directory</div>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">Lookup records & history</div>
+            </div>
+        </a>
+
+        <a href="{% url 'billing-invoice-list' %}" class="action-card">
+            <div class="action-icon" style="background: #f0fdf4; color: #16a34a;">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 15px;">Billing & Invoices</div>
+                <div style="font-size: 12.5px; color: var(--text-secondary);">Settlements & receipts</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- KPI Statistics Grid -->
+    <div class="staff-stats-grid">
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+                Today's Bookings
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">
+                {{ total_today }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Total appointments scheduled
+            </div>
+        </div>
+
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #d97706; margin-bottom: 4px;">
+                Pending Arrival
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: #d97706;">
+                {{ pending_count }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Awaiting reception check-in
+            </div>
+        </div>
+
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #0284c7; margin-bottom: 4px;">
+                Waiting in Queue
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: #0284c7;">
+                {{ waiting_count }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Tokens currently in waiting room
+            </div>
+        </div>
+
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #059669; margin-bottom: 4px;">
+                In Consultation
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: #059669;">
+                {{ in_consultation_count }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Currently seeing physicians
+            </div>
+        </div>
+
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+                Completed Today
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">
+                {{ completed_count }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Finished consultations
+            </div>
+        </div>
+
+        <div class="stat-card-staff">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+                Clinic Patients
+            </div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">
+                {{ total_patients_count }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                Total registered files
+            </div>
+        </div>
+    </div>
+
+    <!-- Two Column Main Hub Grid -->
+    <div style="display: grid; grid-template-columns: 2fr 1.1fr; gap: 24px; align-items: start;">
+
+        <!-- Left Column: Immediate Arrival Stream & Doctor Overview -->
+        <div>
+            <!-- Pending Check-ins (Action Stream) -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-bell-concierge" style="color: var(--primary);"></i>
+                        <span>Immediate Arrivals Awaiting Check-In</span>
+                        <span class="badge badge-booked" style="margin-left: 6px;">{{ pending_count }}</span>
+                    </h3>
+                    <a href="{% url 'today-appointments' %}" class="btn btn-outline btn-sm">
+                        <span>View All ({{ total_today }})</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 11px;"></i>
+                    </a>
+                </div>
+
+                {% if urgent_arrivals %}
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px;">Token</th>
+                                    <th>Patient Details</th>
+                                    <th>Doctor</th>
+                                    <th>Slot Time</th>
+                                    <th style="width: 180px; text-align: center;">Quick Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appt in urgent_arrivals %}
+                                <tr>
+                                    <td>
+                                        <strong style="color: var(--primary); font-size: 15px;">
+                                            #{{ appt.token.formatted_token_number|default:"-" }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--text-primary);">
+                                            {{ appt.patient }}
+                                        </div>
+                                        {% if appt.patient.user.phone_number %}
+                                            <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                                                <i class="fa-solid fa-phone" style="font-size: 10px;"></i>
+                                                <span>{{ appt.patient.user.phone_number }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 600;">Dr. {{ appt.doctor.user.last_name }}</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">{{ appt.doctor.department.name }}</div>
+                                    </td>
+                                    <td>
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13.5px;">
+                                            <i class="fa-regular fa-clock" style="color: var(--primary); font-size: 12px;"></i>
+                                            {% if appt.time_slot %}{{ appt.time_slot }}{% else %}{{ appt.appointment_time|time:"h:i A" }}{% endif %}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <div style="display: flex; gap: 6px; align-items: center; justify-content: center;">
+                                            <form method="post" action="{% url 'check-in-patient' appt.id %}" style="margin: 0; display: inline-flex;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                                <button type="submit" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">
+                                                    <i class="fa-solid fa-clipboard-check"></i>
+                                                    <span>Check In</span>
+                                                </button>
+                                            </form>
+                                            <a href="{% url 'staff-reschedule-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 6px 9px; font-size: 12px;" title="Reschedule">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            </a>
+                                            <a href="{% url 'staff-cancel-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 6px 9px; font-size: 12px; color: #dc2626; border-color: #fca5a5;" title="Cancel">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+                        <i class="fa-solid fa-circle-check" style="font-size: 32px; color: #10b981; margin-bottom: 8px; display: block;"></i>
+                        <p style="margin: 0; font-size: 14.5px; font-weight: 600; color: var(--text-primary);">
+                            No Booked Arrivals Pending Check-In
+                        </p>
+                        <p style="margin: 4px 0 0 0; font-size: 13px;">
+                            All patients scheduled for today have checked in or no further bookings remain.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Active Doctors On Duty -->
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                        <span>Attending Physicians & Queue Load</span>
+                    </h3>
+                    <a href="{% url 'queue' %}" class="btn btn-outline btn-sm">
+                        <i class="fa-solid fa-users-line"></i>
+                        <span>All Queues</span>
+                    </a>
+                </div>
+
+                <div style="padding: 16px 20px;">
+                    {% if doctor_summaries %}
+                        {% for item in doctor_summaries %}
+                        <div class="doctor-duty-card">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="doctor-badge-duty">
+                                    {{ item.doctor.user.first_name|slice:":1" }}{{ item.doctor.user.last_name|slice:":1" }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                                        Dr. {{ item.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ item.doctor.user.last_name }}
+                                    </div>
+                                    <div style="font-size: 12.5px; color: var(--text-secondary);">
+                                        {{ item.doctor.department.name }} &bull; {{ item.doctor.specialization|default:"Specialist" }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                {% if item.in_consultation %}
+                                    <span class="consult-pill-live" title="Currently seeing patient">
+                                        <i class="fa-solid fa-stethoscope"></i>
+                                        <span>Seeing: {{ item.in_consultation.patient.user.first_name }}</span>
+                                    </span>
+                                {% endif %}
+
+                                <span class="waiting-pill-live" title="Waiting in queue">
+                                    <i class="fa-solid fa-hourglass-half"></i>
+                                    <span>{{ item.waiting_count }} waiting</span>
+                                </span>
+
+                                <span style="font-size: 12.5px; color: var(--text-muted); font-weight: 600;">
+                                    {{ item.completed_count }}/{{ item.total_today }} done
+                                </span>
+
+                                <a href="{% url 'queue' %}?doctor={{ item.doctor.id }}" class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px;">
+                                    <span>Queue</span>
+                                    <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: var(--text-muted); text-align: center; margin: 0; padding: 20px 0;">
+                            No active doctors registered in the system.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Live Waiting Queue Snapshot & Recent Patients -->
+        <div>
+            <!-- Live Waiting Queue Snapshot -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-users-line" style="color: #0284c7;"></i>
+                        <span>Waiting Room Queue</span>
+                    </h3>
+                    <span class="badge badge-waiting">{{ waiting_count }} in room</span>
+                </div>
+
+                <div style="padding: 16px;">
+                    {% if waiting_tokens %}
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {% for token in waiting_tokens %}
+                            <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 12px 14px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;">
+                                        #{{ token.formatted_token_number }}
+                                    </span>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">
+                                            {{ token.appointment.patient }}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">
+                                            For Dr. {{ token.doctor.user.last_name }} ({{ token.doctor.department.name }})
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="badge badge-waiting" style="font-size: 11px;">
+                                    WAITING
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div style="margin-top: 15px;">
+                            <a href="{% url 'queue' %}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center;">
+                                <i class="fa-solid fa-expand"></i>
+                                <span>Open Full Queue Display</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div style="padding: 25px 15px; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-chair" style="font-size: 28px; color: var(--border-color); margin-bottom: 8px; display: block;"></i>
+                            <div style="font-weight: 600; font-size: 14px; color: var(--text-secondary);">Waiting Room Empty</div>
+                            <div style="font-size: 12.5px; margin-top: 2px;">No checked-in patients currently waiting.</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recently Registered Patients -->
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-clock" style="color: #db2777;"></i>
+                        <span>Recent Patient Files</span>
+                    </h3>
+                    <a href="{% url 'staff-register-patient' %}" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fa-solid fa-plus"></i> New
+                    </a>
+                </div>
+
+                <div style="padding: 16px;">
+                    {% if recent_patients %}
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {% for p in recent_patients %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">
+                                        {{ p.user.first_name }} {{ p.user.last_name }}
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+                                        <span><i class="fa-solid fa-phone" style="font-size: 10px;"></i> {{ p.user.phone_number|default:"No phone" }}</span>
+                                        {% if p.blood_group %}
+                                            <span class="badge badge-sm" style="background: #fee2e2; color: #dc2626; font-size: 10.5px;">{{ p.blood_group }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <a href="{% url 'walk-in-booking' %}?patient_id={{ p.id }}" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 11.5px;" title="Book Walk-in for this patient">
+                                    <i class="fa-solid fa-calendar-plus"></i>
+                                    <span>Book</span>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div style="margin-top: 14px;">
+                            <a href="{% url 'staff-patient-search' %}" class="btn btn-outline btn-sm" style="width: 100%; justify-content: center;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span>Search All Patients</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <p style="color: var(--text-muted); font-size: 13px; text-align: center; margin: 0; padding: 15px 0;">
+                            No patients registered yet.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

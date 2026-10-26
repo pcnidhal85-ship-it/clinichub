@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Registration — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .signup-wrapper {
+        max-width: 860px;
+        margin: 25px auto;
+    }
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+    .form-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 18px;
+    }
+    @media (max-width: 640px) {
+        .form-grid-2, .form-grid-3 {
+            grid-template-columns: 1fr;
+        }
+    }
+    .signup-section {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .signup-section:last-of-type {
+        border-bottom: none;
+    }
+    .signup-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="signup-wrapper">
+        <div style="margin-bottom: 24px;">
+            <h1 style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">
+                Create Your Patient Account
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 15px;">
+                Register your profile to schedule doctor consultations, receive digital queue tokens, and view clinical histories.
+            </p>
+        </div>
+
+        <div class="card">
+            <form method="post" action="{% url 'signup' %}" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ form.non_field_errors }}</span>
+                    </div>
+                {% endif %}
+
+                <!-- Section 1: Basic Identity -->
+                <div class="signup-section">
+                    <div class="signup-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-regular fa-user"></i></span>
+                        <span>1. Personal & Contact Details</span>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_first_name" class="form-label">First Name *</label>
+                            <input type="text" name="first_name" id="id_first_name" class="form-control" placeholder="John" required value="{{ form.first_name.value|default:'' }}">
+                            {% if form.first_name.errors %}
+                                <div class="field-error">{{ form.first_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_last_name" class="form-label">Last Name *</label>
+                            <input type="text" name="last_name" id="id_last_name" class="form-control" placeholder="Doe" required value="{{ form.last_name.value|default:'' }}">
+                            {% if form.last_name.errors %}
+                                <div class="field-error">{{ form.last_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="id_email" class="form-label">Email Address * (Used for Sign In)</label>
+                            <input type="email" name="email" id="id_email" class="form-control" placeholder="john.doe@example.com" required value="{{ form.email.value|default:'' }}">
+                            {% if form.email.errors %}
+                                <div class="field-error">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_username" class="form-label">Username *</label>
+                            <input type="text" name="username" id="id_username" class="form-control" placeholder="johndoe" required value="{{ form.username.value|default:'' }}">
+                            {% if form.username.errors %}
+                                <div class="field-error">{{ form.username.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="id_phone_number" class="form-label">Phone Number</label>
+                        <input type="text" name="phone_number" id="id_phone_number" class="form-control" placeholder="+1 (555) 012-3456" value="{{ form.phone_number.value|default:'' }}">
+                        {% if form.phone_number.errors %}
+                            <div class="field-error">{{ form.phone_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section 2: Medical Profile -->
+                <div class="signup-section">
+                    <div class="signup-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-heart-pulse"></i></span>
+                        <span>2. Basic Medical Profile</span>
+                    </div>
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label for="id_date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" name="date_of_birth" id="id_date_of_birth" class="form-control" value="{{ form.date_of_birth.value|default:'' }}">
+                            {% if form.date_of_birth.errors %}
+                                <div class="field-error">{{ form.date_of_birth.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_gender" class="form-label">Gender</label>
+                            {{ form.gender }}
+                            {% if form.gender.errors %}
+                                <div class="field-error">{{ form.gender.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_blood_group" class="form-label">Blood Group</label>
+                            <input type="text" name="blood_group" id="id_blood_group" class="form-control" placeholder="e.g. O+, A+, B-" value="{{ form.blood_group.value|default:'' }}">
+                            {% if form.blood_group.errors %}
+                                <div class="field-error">{{ form.blood_group.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="id_address" class="form-label">Residential Address</label>
+                        <textarea name="address" id="id_address" class="form-control" rows="2" placeholder="Street address, City, Postal code">{{ form.address.value|default:'' }}</textarea>
+                        {% if form.address.errors %}
+                            <div class="field-error">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section 3: Emergency Contact -->
+                <div class="signup-section">
+                    <div class="signup-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-phone-volume"></i></span>
+                        <span>3. Emergency Contact Information</span>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="id_emergency_contact_name" class="form-label">Emergency Contact Name</label>
+                            <input type="text" name="emergency_contact_name" id="id_emergency_contact_name" class="form-control" placeholder="Full name of contact" value="{{ form.emergency_contact_name.value|default:'' }}">
+                            {% if form.emergency_contact_name.errors %}
+                                <div class="field-error">{{ form.emergency_contact_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="id_emergency_contact_phone" class="form-label">Emergency Contact Phone</label>
+                            <input type="text" name="emergency_contact_phone" id="id_emergency_contact_phone" class="form-control" placeholder="Phone number" value="{{ form.emergency_contact_phone.value|default:'' }}">
+                            {% if form.emergency_contact_phone.errors %}
+                                <div class="field-error">{{ form.emergency_contact_phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Security -->
+                <div class="signup-section">
+                    <div class="signup-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-lock"></i></span>
+                        <span>4. Account Password</span>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="id_password" class="form-label">Password *</label>
+                            <input type="password" name="password" id="id_password" class="form-control" placeholder="At least 8 characters" required>
+                            {% if form.password.errors %}
+                                <div class="field-error">{{ form.password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="id_confirm_password" class="form-label">Confirm Password *</label>
+                            <input type="password" name="confirm_password" id="id_confirm_password" class="form-control" placeholder="Re-type password" required>
+                            {% if form.confirm_password.errors %}
+                                <div class="field-error">{{ form.confirm_password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--primary-light); border: 1px solid rgba(8, 127, 140, 0.2); padding: 14px 18px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: flex-start; gap: 12px;">
+                    <i class="fa-solid fa-envelope-circle-check" style="color: var(--primary); font-size: 18px; margin-top: 2px;"></i>
+                    <div>
+                        <strong>Email Verification Required:</strong> After submitting, we will send an activation link to your email to verify your identity before your first sign in.
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="font-size: 14px; color: var(--text-secondary);">
+                        Already have an account? <a href="{% url 'login' %}" style="font-weight: 700;">Sign in here</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-user-check"></i>
+                        <span>Complete Registration</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const genderSelect = document.getElementById("id_gender");
+        if (genderSelect) {
+            genderSelect.classList.add("form-select");
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Departments — ClinicHub Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <a href="{% url 'admin-dashboard' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left"></i> Command Center
+                </a>
+                <span style="color: var(--border-color);">&bull;</span>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Clinical Structure</span>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                Clinical Departments & Specialties
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 4px 0 0 0;">
+                Manage medical divisions, active specialties, clinical scopes, and staff associations.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'admin-department-create' %}" class="btn btn-primary" style="font-weight: 700; box-shadow: var(--shadow-sm);">
+                <i class="fa-solid fa-plus"></i>
+                <span>Create Department</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: #fdf2f8; color: #db2777; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+            <div>
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Total Divisions</div>
+                <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);">{{ total_departments }}</div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Active Specialties</div>
+                <div style="font-size: 24px; font-weight: 800; color: #059669;">{{ active_departments }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Table Card -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-hospital" style="color: var(--primary);"></i>
+                <span>Registered Departments ({{ dept_data|length }})</span>
+            </h3>
+        </div>
+
+        {% if dept_data %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Department Name</th>
+                            <th>Description & Clinical Scope</th>
+                            <th>Medical Staffing</th>
+                            <th>Support Staff</th>
+                            <th>Status</th>
+                            <th style="width: 170px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dept_data %}
+                        <tr>
+                            <td>
+                                <strong style="font-size: 15px; color: var(--text-primary);">{{ item.department.name }}</strong>
+                            </td>
+                            <td>
+                                {% if item.department.description %}
+                                    <span style="font-size: 13.5px; color: var(--text-secondary);">{{ item.department.description }}</span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12.5px;">No description provided</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'admin-doctors' %}?department={{ item.department.id }}" style="font-weight: 700; font-size: 14px; text-decoration: none; color: var(--primary);">
+                                    {{ item.doctor_count }} physician{{ item.doctor_count|pluralize }}
+                                </a>
+                                <div style="font-size: 11.5px; color: var(--text-muted);">({{ item.active_doctor_count }} currently active)</div>
+                            </td>
+                            <td>
+                                <a href="{% url 'admin-staff' %}?department={{ item.department.id }}" style="font-weight: 600; font-size: 13.5px; text-decoration: none; color: var(--text-primary);">
+                                    {{ item.staff_count }} staff member{{ item.staff_count|pluralize }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if item.department.is_active %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                                    <a href="{% url 'admin-department-edit' item.department.id %}" class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px;" title="Edit Department">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Edit</span>
+                                    </a>
+
+                                    <form method="post" action="{% url 'admin-department-toggle' item.department.id %}" style="display: inline; margin: 0;">
+                                        {% csrf_token %}
+                                        {% if item.department.is_active %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #dc2626; border-color: #fca5a5;" title="Deactivate Department" onclick="return confirm('Deactivate department {{ item.department.name }}? It will not appear in patient booking.');">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #059669; border-color: #a7f3d0;" title="Activate Department">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fa-solid fa-hospital" style="font-size: 36px; opacity: 0.3; margin-bottom: 8px; display: block;"></i>
+                <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">No Departments Registered</div>
+                <div style="font-size: 13.5px; margin-top: 4px;">Get started by adding clinical divisions.</div>
+                <div style="margin-top: 14px;">
+                    <a href="{% url 'admin-department-create' %}" class="btn btn-primary btn-sm">Create Department</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

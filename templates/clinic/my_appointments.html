@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments — ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                My Appointments
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                View your complete appointment booking history and current status.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'create-appointment' %}" class="btn btn-primary btn-sm">
+                <i class="fa-regular fa-calendar-plus"></i>
+                <span>Book New Visit</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-calendar-days" style="color: var(--primary);"></i>
+                <span>Appointment History ({{ appointments|length }})</span>
+            </h3>
+        </div>
+
+        {% if appointments %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Token</th>
+                            <th>Doctor & Specialization</th>
+                            <th>Department</th>
+                            <th>Scheduled Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th style="text-align: right; width: 220px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in appointments %}
+                        <tr>
+                            <td>
+                                {% if apt.token %}
+                                    <strong style="color: var(--primary); font-size: 16px;">
+                                        #{{ apt.token.formatted_token_number }}
+                                    </strong>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ apt.doctor }}</strong>
+                                <div style="font-size: 12.5px; color: var(--text-secondary);">
+                                    {{ apt.doctor.specialization }}
+                                </div>
+                            </td>
+                            <td>{{ apt.doctor.department.name }}</td>
+                            <td>
+                                <strong style="color: var(--text-primary);">
+                                    {{ apt.appointment_date|date:"M j, Y" }}
+                                </strong>
+                            </td>
+                            <td>
+                                {% if apt.time_slot %}
+                                    <span style="font-weight: 600; color: var(--text-primary);">{{ apt.time_slot }}</span>
+                                {% else %}
+                                    {{ apt.appointment_time|time:"h:i A" }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if apt.status == 'BOOKED' %}
+                                    <span class="badge badge-booked"><i class="fa-regular fa-clock"></i> {{ apt.get_status_display }}</span>
+                                {% elif apt.status == 'CHECKED_IN' or apt.status == 'WAITING' %}
+                                    <span class="badge badge-waiting"><i class="fa-solid fa-users-line"></i> {{ apt.get_status_display }}</span>
+                                {% elif apt.status == 'IN_CONSULTATION' %}
+                                    <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> {{ apt.get_status_display }}</span>
+                                {% elif apt.status == 'COMPLETED' %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> {{ apt.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> {{ apt.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                    {% if apt.status == 'BOOKED' %}
+                                        <a href="{% url 'reschedule-appointment' apt.id %}" class="btn btn-outline btn-sm" title="Reschedule appointment">
+                                            <i class="fa-regular fa-calendar-days"></i>
+                                            <span>Reschedule</span>
+                                        </a>
+                                        <a href="{% url 'cancel-appointment' apt.id %}" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" title="Cancel appointment">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            <span>Cancel</span>
+                                        </a>
+                                    {% elif apt.status == 'WAITING' or apt.status == 'CHECKED_IN' %}
+                                        <a href="{% url 'cancel-appointment' apt.id %}" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;" title="Cancel waiting visit">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            <span>Cancel</span>
+                                        </a>
+                                    {% elif apt.status == 'COMPLETED' %}
+                                        <span style="font-size: 12.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px;">
+                                            <i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Completed
+                                        </span>
+                                    {% elif apt.status == 'CANCELLED' %}
+                                        <span style="font-size: 12.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px;">
+                                            <i class="fa-solid fa-ban" style="color: #ef4444;"></i> Cancelled
+                                        </span>
+                                    {% else %}
+                                        <span style="font-size: 12.5px; color: var(--text-muted);">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-regular fa-calendar-xmark"></i>
+                </div>
+                <h3 class="empty-state-title">
+                    No Appointments on Record
+                </h3>
+                <p class="empty-state-text">
+                    You haven't scheduled any doctor visits yet. Pick an available slot whenever you're ready to see a clinician.
+                </p>
+                <a href="{% url 'create-appointment' %}" class="btn btn-primary">
+                    <i class="fa-regular fa-calendar-plus"></i>
+                    <span>Schedule Your First Appointment</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

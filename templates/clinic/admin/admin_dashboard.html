@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Command Center — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-hero {
+        background: linear-gradient(135deg, #0c2340 0%, #0f4c75 60%, #087f8c 100%);
+        border-radius: var(--radius-lg);
+        padding: 30px 32px;
+        color: white;
+        margin-bottom: 28px;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .btn-hero-solid {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ffffff !important;
+        color: #087f8c !important;
+        font-weight: 700;
+        font-size: 13.5px;
+        padding: 9px 18px;
+        border-radius: var(--radius-sm);
+        border: 1px solid #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .btn-hero-solid i { color: #087f8c !important; }
+    .btn-hero-solid:hover {
+        background: #f8fafc !important;
+        color: #0c2340 !important;
+        transform: translateY(-2px);
+    }
+    .btn-hero-solid:hover i { color: #0c2340 !important; }
+
+    .btn-hero-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        font-size: 13.5px;
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid rgba(255, 255, 255, 0.6);
+        text-decoration: none;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .btn-hero-outline i { color: #ffffff !important; }
+    .btn-hero-outline:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: #ffffff;
+        transform: translateY(-2px);
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .kpi-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+    }
+
+    .kpi-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .kpi-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+    }
+
+    .kpi-value {
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+
+    .kpi-subtext {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 3px;
+    }
+
+    .admin-layout-grid {
+        display: grid;
+        grid-template-columns: 2fr 1.1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    @media (max-width: 960px) {
+        .admin-layout-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .action-pill-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: var(--transition);
+        margin-bottom: 10px;
+    }
+    .action-pill-btn:hover {
+        border-color: var(--primary);
+        background: #f8fafc;
+        transform: translateX(4px);
+    }
+    .action-pill-btn .icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Admin Hero Banner -->
+    <div class="admin-hero">
+        <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-crown" style="color: #fcd34d;"></i>
+                <span>Executive Operations & Clinic Governance</span>
+            </div>
+            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px; line-height: 1.2;">
+                Clinic Administrator Portal
+            </h1>
+            <p style="font-size: 14.5px; opacity: 0.9; margin: 0; max-width: 600px;">
+                Logged in as <strong>{{ user.get_full_name|default:user.username }}</strong> &bull; Operational status for <strong>{{ today|date:"l, F j, Y" }}</strong>.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'admin-doctor-create' %}" class="btn-hero-solid">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Add Doctor</span>
+            </a>
+            <a href="{% url 'admin-staff-create' %}" class="btn-hero-solid">
+                <i class="fa-solid fa-id-badge"></i>
+                <span>Add Staff</span>
+            </a>
+            <a href="{% url 'admin-reports' %}" class="btn-hero-outline">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Clinic Analytics</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Core Clinic KPI Counters -->
+    <div class="kpi-grid">
+        <a href="{% url 'admin-doctors' %}" class="kpi-card">
+            <div class="kpi-icon" style="background: #e0f2fe; color: #0284c7;">
+                <i class="fa-solid fa-user-doctor"></i>
+            </div>
+            <div>
+                <div class="kpi-title">Active Doctors</div>
+                <div class="kpi-value">{{ active_doctors }} <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">/ {{ total_doctors }}</span></div>
+                <div class="kpi-subtext">On duty across specialties</div>
+            </div>
+        </a>
+
+        <a href="{% url 'admin-staff' %}" class="kpi-card">
+            <div class="kpi-icon" style="background: #ecfdf5; color: #059669;">
+                <i class="fa-solid fa-users-gear"></i>
+            </div>
+            <div>
+                <div class="kpi-title">Clinic Staff</div>
+                <div class="kpi-value">{{ active_staff }}</div>
+                <div class="kpi-subtext">Reception, nurses, technicians</div>
+            </div>
+        </a>
+
+        <a href="{% url 'admin-departments' %}" class="kpi-card">
+            <div class="kpi-icon" style="background: #fdf2f8; color: #db2777;">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+            <div>
+                <div class="kpi-title">Departments</div>
+                <div class="kpi-value">{{ total_departments }}</div>
+                <div class="kpi-subtext">Active clinical divisions</div>
+            </div>
+        </a>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #fef3c7; color: #b45309;">
+                <i class="fa-solid fa-address-book"></i>
+            </div>
+            <div>
+                <div class="kpi-title">Registered Patients</div>
+                <div class="kpi-value">{{ total_patients }}</div>
+                <div class="kpi-subtext">Total medical records on file</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Operational Status Strip -->
+    <div class="card" style="margin-bottom: 28px; padding: 20px 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="font-size: 16.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-calendar-check" style="color: var(--primary);"></i>
+                <span>Today's Clinic Flow Snapshot ({{ today|date:"M j, Y" }})</span>
+            </h3>
+            <div style="font-size: 13.5px; color: var(--text-muted); font-weight: 600;">
+                Total Today: <strong style="color: var(--text-primary); font-size: 16px;">{{ today_total }}</strong> appointments
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #0284c7;">Booked</div>
+                <div style="font-size: 22px; font-weight: 800; color: #0284c7; margin-top: 2px;">{{ today_booked }}</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #b45309;">In Queue</div>
+                <div style="font-size: 22px; font-weight: 800; color: #b45309; margin-top: 2px;">{{ today_waiting }}</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #a21caf;">Consulting</div>
+                <div style="font-size: 22px; font-weight: 800; color: #a21caf; margin-top: 2px;">{{ today_consulting }}</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #15803d;">Completed</div>
+                <div style="font-size: 22px; font-weight: 800; color: #15803d; margin-top: 2px;">{{ today_completed }}</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #b91c1c;">Cancelled</div>
+                <div style="font-size: 22px; font-weight: 800; color: #b91c1c; margin-top: 2px;">{{ today_cancelled }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Admin 2-Column Grid -->
+    <div class="admin-layout-grid">
+
+        <!-- Left Column: Department Capacities & Live Consultations -->
+        <div>
+            <!-- Live Active Consultations -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-stethoscope" style="color: #a21caf;"></i>
+                        <span>Live Consultations In Session</span>
+                        <span class="badge badge-in-consultation" style="margin-left: 6px;">{{ today_consulting }} Active</span>
+                    </h3>
+                    <a href="{% url 'queue' %}" class="btn btn-outline btn-sm">
+                        <span>Waiting Queue</span>
+                        <i class="fa-solid fa-arrow-right" style="font-size: 11px;"></i>
+                    </a>
+                </div>
+
+                {% if active_consultations %}
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Department</th>
+                                    <th>Scheduled Slot</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appt in active_consultations %}
+                                <tr>
+                                    <td>
+                                        <strong style="color: var(--primary); font-size: 15px;">#{{ appt.token.formatted_token_number|default:"-" }}</strong>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--text-primary);">{{ appt.patient }}</div>
+                                        <div style="font-size: 11.5px; color: var(--text-muted);">ID #{{ appt.patient.id }}</div>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 600;">Dr. {{ appt.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ appt.doctor.user.last_name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background: #f1f5f9; color: var(--text-secondary); font-weight: 600;">
+                                            {{ appt.doctor.department.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 13px; font-weight: 600;">{{ appt.time_slot|default:appt.appointment_time|time:"h:i A" }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div style="padding: 28px; text-align: center; color: var(--text-muted);">
+                        <i class="fa-solid fa-stethoscope" style="font-size: 28px; opacity: 0.4; margin-bottom: 6px; display: block;"></i>
+                        <div style="font-size: 14px; font-weight: 600;">No Consultations Currently In Session</div>
+                        <div style="font-size: 12.5px; margin-top: 3px;">Doctors will appear here in real time as consultations begin.</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Department Load Breakdown -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-hospital-user" style="color: var(--primary);"></i>
+                        <span>Department Operational Load</span>
+                    </h3>
+                    <a href="{% url 'admin-departments' %}" class="btn btn-outline btn-sm">
+                        <span>Manage Departments</span>
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Active Doctors</th>
+                                <th>Today's Volume</th>
+                                <th>In Queue</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ds in dept_stats %}
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 700; color: var(--text-primary);">{{ ds.department.name }}</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">{{ ds.department.description|truncatechars:45|default:"Medical specialty" }}</div>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 600; font-size: 14px;">{{ ds.doctor_count }}</span> physician{{ ds.doctor_count|pluralize }}
+                                </td>
+                                <td>
+                                    <strong style="color: var(--text-primary); font-size: 14px;">{{ ds.today_appointments }}</strong> visits
+                                </td>
+                                <td>
+                                    {% if ds.waiting_count > 0 %}
+                                        <span class="badge badge-waiting">{{ ds.waiting_count }} waiting</span>
+                                    {% else %}
+                                        <span style="color: var(--text-muted); font-size: 12px;">Clear</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ds.department.is_active %}
+                                        <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                    {% else %}
+                                        <span class="badge badge-cancelled">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">No departments found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 7-Day Clinic Flow Trend -->
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chart-line" style="color: var(--primary);"></i>
+                        <span>Recent 7-Day Volume Trend</span>
+                    </h3>
+                    <a href="{% url 'admin-reports' %}" class="btn btn-outline btn-sm">Full Analytics</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Total Bookings</th>
+                                <th>Completed</th>
+                                <th>Cancelled</th>
+                                <th>Completion %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in daily_trend %}
+                            <tr {% if d.date == today %}style="background: #f0fdfa; font-weight: 600;"{% endif %}>
+                                <td>
+                                    <strong>{{ d.date|date:"M j, Y" }}</strong>
+                                    {% if d.date == today %}<span class="badge badge-booked" style="margin-left: 6px; font-size: 10px;">Today</span>{% endif %}
+                                </td>
+                                <td>{{ d.day_name }}</td>
+                                <td><span style="font-size: 14px; font-weight: 700;">{{ d.total }}</span></td>
+                                <td><span style="color: #15803d; font-weight: 700;">{{ d.completed }}</span></td>
+                                <td><span style="color: #b91c1c;">{{ d.cancelled }}</span></td>
+                                <td>
+                                    {% if d.total > 0 %}
+                                        {% widthratio d.completed d.total 100 %}%
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quick Administration Hub & Recent Entity Logs -->
+        <div>
+            <!-- Quick Management Launchpad -->
+            <div class="card" style="margin-bottom: 24px; padding: 22px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-sliders" style="color: var(--primary);"></i>
+                    <span>Management Launchpad</span>
+                </h3>
+
+                <a href="{% url 'admin-doctors' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #e0f2fe; color: #0284c7;">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Doctor Directory</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Profiles, specialties, active status</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="{% url 'admin-staff' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #ecfdf5; color: #059669;">
+                        <i class="fa-solid fa-users-gear"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Staff Roster</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Roles, designations, access control</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="{% url 'admin-departments' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #fdf2f8; color: #db2777;">
+                        <i class="fa-solid fa-hospital"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Clinical Departments</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Divisions, medical scopes, toggles</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="{% url 'admin-reports' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #fae8ff; color: #a21caf;">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Reports & KPIs</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Physician metrics & clinic volume</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="{% url 'staff-dashboard' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #f0fdfa; color: #087f8c;">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Front-Desk Reception Hub</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Patient check-in & walk-ins</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="{% url 'billing-invoice-list' %}" class="action-pill-btn">
+                    <div class="icon" style="background: #ecfdf5; color: #16a34a;">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Billing & Invoices Hub</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Fee settlements, receipts & catalog</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+
+                <a href="/admin/" target="_blank" class="action-pill-btn" style="border-style: dashed;">
+                    <div class="icon" style="background: #f1f5f9; color: var(--text-secondary);">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px;">Django Raw Database Admin</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Low-level database ORM inspector</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 12px; color: var(--text-muted);"></i>
+                </a>
+            </div>
+
+            <!-- Recently Onboarded Doctors -->
+            <div class="card" style="margin-bottom: 24px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 style="font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                        <span>Recent Doctors</span>
+                    </h3>
+                    <a href="{% url 'admin-doctor-create' %}" class="btn btn-outline btn-sm" style="font-size: 11.5px; padding: 3px 8px;">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </a>
+                </div>
+
+                {% for doc in recent_doctors %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">
+                            Dr. {{ doc.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doc.user.last_name }}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            {{ doc.department.name }} &bull; {{ doc.specialization }}
+                        </div>
+                    </div>
+                    <a href="{% url 'admin-doctor-edit' doc.id %}" class="btn btn-outline btn-sm" style="padding: 3px 8px; font-size: 11.5px;">Edit</a>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No doctor records found.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Recently Registered Patients -->
+            <div class="card" style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 style="font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-hospital-user" style="color: var(--primary);"></i>
+                        <span>Recent Patient Files</span>
+                    </h3>
+                    <a href="{% url 'staff-patient-search' %}" class="btn btn-outline btn-sm" style="font-size: 11.5px; padding: 3px 8px;">
+                        Search Files
+                    </a>
+                </div>
+
+                {% for p in recent_patients %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">
+                            {{ p }}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            ID #{{ p.id }} &bull; {{ p.user.phone_number|default:"No phone" }}
+                        </div>
+                    </div>
+                    <a href="{% url 'staff-patient-search' %}?patient_id={{ p.id }}" class="btn btn-outline btn-sm" style="padding: 3px 8px; font-size: 11.5px;">View File</a>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">No patients registered yet.</p>
+                {% endfor %}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

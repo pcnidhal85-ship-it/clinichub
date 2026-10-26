@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}ClinicHub — Modern Healthcare & Clinic Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* HERO */
+    .hero {
+        padding: 50px 0 70px;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        align-items: center;
+        gap: 50px;
+    }
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #e6f6f8;
+        color: #087f8c;
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+    .hero-badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #087f8c;
+    }
+    .hero h1 {
+        font-size: 46px;
+        font-weight: 800;
+        line-height: 1.15;
+        color: var(--text-primary);
+        letter-spacing: -1px;
+        margin-bottom: 18px;
+    }
+    .hero h1 span {
+        color: var(--primary);
+    }
+    .hero-text {
+        font-size: 17px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 30px;
+        max-width: 540px;
+    }
+    .hero-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .hero-visual {
+        background: linear-gradient(135deg, #087f8c 0%, #0c2340 100%);
+        border-radius: 28px;
+        padding: 40px;
+        color: white;
+        box-shadow: var(--shadow-xl);
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-pill {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(8px);
+        padding: 16px 20px;
+        border-radius: var(--radius-md);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .stat-pill:last-child {
+        margin-bottom: 0;
+    }
+
+    /* SERVICES */
+    .section-title {
+        text-align: center;
+        margin-bottom: 45px;
+    }
+    .section-title h2 {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+    }
+    .section-title p {
+        color: var(--text-secondary);
+        font-size: 16px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 25px;
+        margin-bottom: 80px;
+    }
+    .service-card {
+        background: white;
+        padding: 30px 25px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition);
+    }
+    .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    .service-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: var(--radius-md);
+        background: #e6f6f8;
+        color: #087f8c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 20px;
+    }
+    .service-card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    .service-card p {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    /* HOW IT WORKS */
+    .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 25px;
+        margin-bottom: 80px;
+    }
+    .step-card {
+        background: white;
+        padding: 30px 22px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+    .step-num {
+        font-size: 38px;
+        font-weight: 800;
+        color: #e2e8f0;
+        line-height: 1;
+        margin-bottom: 15px;
+    }
+    .step-card h3 {
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    .step-card p {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    /* CTA */
+    .cta-banner {
+        background: linear-gradient(135deg, #087f8c 0%, #04434a 100%);
+        border-radius: 28px;
+        padding: 60px 40px;
+        text-align: center;
+        color: white;
+        margin-bottom: 50px;
+        box-shadow: var(--shadow-xl);
+    }
+    .cta-banner h2 {
+        font-size: 34px;
+        font-weight: 800;
+        margin-bottom: 12px;
+        color: white;
+    }
+    .cta-banner p {
+        font-size: 16px;
+        opacity: 0.92;
+        max-width: 550px;
+        margin: 0 auto 30px;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+        .hero {
+            grid-template-columns: 1fr;
+            text-align: center;
+            gap: 40px;
+        }
+        .hero h1 {
+            font-size: 36px;
+        }
+        .hero-text {
+            margin: 0 auto 30px;
+        }
+        .hero-buttons {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div>
+            <div class="hero-badge">
+                <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i>
+                Thoughtful Healthcare & Smart Scheduling
+            </div>
+
+            <h1>
+                Care designed around <br>
+                <span>your time and comfort.</span>
+            </h1>
+
+            <p class="hero-text">
+                ClinicHub brings transparency to your outpatient visits. Book appointments with trusted doctors, monitor waiting queues in real time, and access your consultation records with complete peace of mind.
+            </p>
+
+            <div class="hero-buttons">
+                {% if user.is_authenticated %}
+                    {% if user.user_type == "PATIENT" %}
+                        <a href="{% url 'patient-dashboard' %}" class="btn btn-primary btn-lg">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>My Dashboard</span>
+                        </a>
+                        <a href="{% url 'create-appointment' %}" class="btn btn-outline btn-lg">
+                            <i class="fa-regular fa-calendar-plus"></i>
+                            <span>Book an Appointment</span>
+                        </a>
+                    {% elif user.user_type == "STAFF" %}
+                        <a href="{% url 'today-appointments' %}" class="btn btn-primary btn-lg">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span>Reception Desk</span>
+                        </a>
+                        <a href="{% url 'queue' %}" class="btn btn-outline btn-lg">
+                            <i class="fa-solid fa-users-line"></i>
+                            <span>Waiting Queue</span>
+                        </a>
+                    {% elif user.user_type == "DOCTOR" %}
+                        <a href="{% url 'doctor-dashboard' %}" class="btn btn-primary btn-lg">
+                            <i class="fa-solid fa-stethoscope"></i>
+                            <span>Doctor Portal</span>
+                        </a>
+                        <a href="{% url 'doctor-availability' %}" class="btn btn-outline btn-lg">
+                            <i class="fa-regular fa-clock"></i>
+                            <span>My Schedule</span>
+                        </a>
+                    {% else %}
+                        <a href="/admin/" class="btn btn-primary btn-lg">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Admin Console</span>
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Register as a Patient</span>
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline btn-lg">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        <span>Sign In</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 22px; color: white; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-shield-heart" style="color: #80e5ff;"></i>
+                <span>Designed for Patients & Clinicians</span>
+            </h3>
+
+            <div class="stat-pill">
+                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #80e5ff;">
+                    <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 15px;">Real-Time Queue Tokens</div>
+                    <div style="font-size: 12.5px; opacity: 0.88;">Know your position and arrive just in time</div>
+                </div>
+            </div>
+
+            <div class="stat-pill">
+                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #86efac;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 15px;">Specialist Care Departments</div>
+                    <div style="font-size: 12.5px; opacity: 0.88;">Cardiology, Pediatrics, Dermatology & Internal Medicine</div>
+                </div>
+            </div>
+
+            <div class="stat-pill">
+                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #fde047;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 15px;">Strict Confidentiality</div>
+                    <div style="font-size: 12.5px; opacity: 0.88;">Clinical notes are securely protected between doctor and patient</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services">
+        <div class="section-title">
+            <h2>Comprehensive Clinical Care</h2>
+            <p>Every step of your visit is coordinated to reduce waiting times, protect your records, and give you attentive medical focus.</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fa-regular fa-calendar-check"></i>
+                </div>
+                <h3>Simple Online Booking</h3>
+                <p>Choose your doctor, view actual weekly hours, and reserve a convenient consultation slot in seconds.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fa-solid fa-users-line"></i>
+                </div>
+                <h3>Transparent Queue Status</h3>
+                <p>No waiting in crowded lobbies. Track your digital token live and see when your physician is ready.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fa-solid fa-stethoscope"></i>
+                </div>
+                <h3>Dedicated Medical Team</h3>
+                <p>Experienced physicians and staff working together to deliver attentive, individualized care.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fa-solid fa-file-waveform"></i>
+                </div>
+                <h3>Your Health Records</h3>
+                <p>Past visits, diagnostic notes, and medication plans organized neatly in your private patient file.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works">
+        <div class="section-title">
+            <h2>How Your Visit Works</h2>
+            <p>Four easy steps from booking your consultation to walking out with your care plan.</p>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">01</div>
+                <h3>Quick Sign Up</h3>
+                <p>Create your verified patient account in less than two minutes with basic health info.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">02</div>
+                <h3>Pick Doctor & Slot</h3>
+                <p>Browse by specialty and choose an available date and time that matches your schedule.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">03</div>
+                <h3>Get Your Token</h3>
+                <p>Receive your digital token instantly so reception and nursing know you are on the list.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-num">04</div>
+                <h3>Check In & Consult</h3>
+                <p>Check in at reception, meet with your doctor, and find your prescription notes on your dashboard.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-banner">
+        <h2>Experience Healthcare Without the Friction</h2>
+        <p>Book your next doctor appointment online or log into your patient dashboard today.</p>
+        {% if user.is_authenticated %}
+            {% if user.user_type == "PATIENT" %}
+                <a href="{% url 'create-appointment' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
+                    <i class="fa-regular fa-calendar-plus"></i>
+                    <span>Schedule an Appointment</span>
+                </a>
+            {% else %}
+                <a href="{% url 'today-appointments' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span>View Today's Schedule</span>
+                </a>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'signup' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Create Your Patient Account</span>
+            </a>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

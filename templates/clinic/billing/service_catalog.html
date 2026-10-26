@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Clinical Fee & Services Catalog | ClinicHub Billing{% endblock %}
+
+{% block extra_css %}
+<style>
+    .catalog-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .catalog-table-card {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .catalog-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .catalog-table th {
+        background: #f8fafc;
+        padding: 0.9rem 1.25rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        letter-spacing: 0.04em;
+    }
+
+    .catalog-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .category-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.65rem;
+        border-radius: 12px;
+        display: inline-block;
+    }
+
+    .cat-CONSULTATION { background: #e0f2fe; color: #0369a1; }
+    .cat-LAB_TEST { background: #f3e8ff; color: #7e22ce; }
+    .cat-PROCEDURE { background: #ffedd5; color: #c2410c; }
+    .cat-NURSING { background: #dcfce7; color: #15803d; }
+    .cat-OTHER { background: #f1f5f9; color: #475569; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1280px; margin: 0 auto; padding: 2rem 1rem;">
+
+    <div class="catalog-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+                <span style="color: var(--primary); font-size: 1.5rem;"><i class="fa-solid fa-list-check"></i></span>
+                <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--secondary); margin: 0;">Clinical Fee & Service Catalog</h1>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.925rem; margin: 0;">
+                Standard consultation tariffs, laboratory diagnostic tests, and procedure pricing.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'billing-invoice-list' %}" class="btn btn-outline">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Invoices Directory
+            </a>
+            {% if user.user_type == 'ADMIN' or user.is_superuser %}
+            <a href="{% url 'billing-service-create' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Service</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+        <form method="GET" action="{% url 'billing-service-list' %}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 240px; position: relative;">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Search by service name, code, or description..." class="form-control" style="padding-left: 2.25rem;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+            </div>
+
+            <div style="min-width: 200px;">
+                <select name="category" class="form-select" onchange="this.form.submit()">
+                    <option value="all" {% if category_filter == 'ALL' or category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                    {% for code, label in category_choices %}
+                        <option value="{{ code }}" {% if category_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-secondary">
+                <i class="fa-solid fa-filter"></i> Filter
+            </button>
+
+            {% if search_query or category_filter != 'all' %}
+                <a href="{% url 'billing-service-list' %}" class="btn btn-outline" style="color: var(--text-secondary);">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Services Table Card -->
+    <div class="catalog-table-card">
+        {% if services %}
+        <div style="overflow-x: auto;">
+            <table class="catalog-table">
+                <thead>
+                    <tr>
+                        <th>Service / Procedure Name</th>
+                        <th>Category</th>
+                        <th>Billing Code</th>
+                        <th>Base Tariff</th>
+                        <th>Department / Physician</th>
+                        <th>Status</th>
+                        {% if user.user_type == 'ADMIN' or user.is_superuser %}
+                        <th style="text-align: right;">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in services %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: var(--secondary);">{{ s.name }}</div>
+                            {% if s.description %}
+                            <div style="font-size: 0.775rem; color: var(--text-secondary); max-width: 380px;">
+                                {{ s.description|truncatechars:80 }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="category-badge cat-{{ s.category }}">
+                                {{ s.get_category_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <code style="font-size: 0.825rem; background: #f8fafc; padding: 2px 6px; border: 1px solid var(--border-color); border-radius: 4px;">
+                                {{ s.code|default:"-" }}
+                            </code>
+                        </td>
+                        <td>
+                            <span style="font-family: monospace; font-weight: 700; font-size: 1.05rem; color: var(--primary);">
+                                ${{ s.base_fee|floatformat:2 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if s.doctor %}
+                                <div style="font-weight: 500;">Dr. {{ s.doctor.user.get_full_name }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Custom Fee</div>
+                            {% elif s.department %}
+                                <div style="font-weight: 500;">{{ s.department.name }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Department Standard</div>
+                            {% else %}
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Clinic-wide</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.is_active %}
+                                <span style="color: #16a34a; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Active
+                                </span>
+                            {% else %}
+                                <span style="color: #94a3b8; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% if user.user_type == 'ADMIN' or user.is_superuser %}
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{% url 'billing-service-edit' s.id %}" class="btn btn-outline btn-sm" title="Edit Pricing">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </a>
+                            <form method="POST" action="{% url 'billing-service-toggle' s.id %}" style="display: inline;" onsubmit="return confirm('Toggle service status?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline btn-sm" title="Toggle Active">
+                                    {% if s.is_active %}
+                                        <i class="fa-solid fa-toggle-on" style="color: #16a34a;"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-toggle-off" style="color: #94a3b8;"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="padding: 4rem 2rem; text-align: center;">
+            <div style="width: 64px; height: 64px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; color: #94a3b8; font-size: 1.75rem;">
+                <i class="fa-solid fa-list-check"></i>
+            </div>
+            <h3 style="font-size: 1.15rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.5rem;">No Services Found</h3>
+            <p style="color: var(--text-secondary); max-width: 440px; margin: 0 auto 1.5rem; font-size: 0.9rem;">
+                No catalog items match your search or category filter.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

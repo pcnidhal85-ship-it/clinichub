@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}My Prescriptions — ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                My Medical Prescriptions
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                View your complete medical prescription history, doctor recommendations, and download official printouts.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'patient-dashboard' %}" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Prescriptions List -->
+    {% if prescriptions %}
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+            {% for rx in prescriptions %}
+            <div class="card" style="transition: all 0.2s ease;">
+                <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="badge badge-booked" style="font-size: 13px; padding: 6px 12px;">
+                            <i class="fa-solid fa-file-prescription"></i> Rx #{{ rx.id|stringformat:"05d" }}
+                        </span>
+                        <strong style="font-size: 15px; color: var(--text-primary);">
+                            {{ rx.appointment.appointment_date|date:"F j, Y" }}
+                        </strong>
+                        <span style="font-size: 13px; color: var(--text-muted);">
+                            at {{ rx.appointment.appointment_time|time:"h:i A" }}
+                        </span>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <a href="{% url 'patient-prescription-detail' rx.id %}" class="btn btn-outline btn-sm">
+                            <i class="fa-regular fa-eye"></i>
+                            <span>View Details</span>
+                        </a>
+                        <a href="{% url 'prescription-print' rx.id %}" target="_blank" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-print"></i>
+                            <span>Print / PDF</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.5fr 2fr 1fr; gap: 20px; align-items: start;">
+                    <div>
+                        <div style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">
+                            Consulting Physician
+                        </div>
+                        <div style="font-size: 15px; font-weight: 700; color: var(--secondary);">
+                            Dr. {{ rx.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ rx.doctor.user.last_name }}
+                        </div>
+                        <div style="font-size: 13px; color: var(--primary); font-weight: 600;">
+                            {{ rx.doctor.department.name }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">
+                            Diagnosis & Assessment
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-primary); font-weight: 600;">
+                            {% if rx.medical_record %}
+                                {{ rx.medical_record.diagnosis }}
+                            {% elif rx.appointment.notes %}
+                                {{ rx.appointment.notes|truncatechars:80 }}
+                            {% else %}
+                                General Clinical Consultation
+                            {% endif %}
+                        </div>
+                        {% if rx.items.exists %}
+                            <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 4px;">
+                                <i class="fa-solid fa-pills" style="color: var(--primary);"></i>
+                                {{ rx.items.count }} medication{{ rx.items.count|pluralize }} prescribed
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div style="text-align: right;">
+                        <div style="font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 2px;">
+                            Follow-Up Date
+                        </div>
+                        <div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">
+                            {% if rx.follow_up_date %}
+                                {{ rx.follow_up_date|date:"M j, Y" }}
+                            {% else %}
+                                As needed (SOS)
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card empty-state" style="padding: 60px 20px;">
+            <div class="empty-state-icon" style="font-size: 32px; width: 68px; height: 68px;">
+                <i class="fa-solid fa-file-prescription"></i>
+            </div>
+            <h3 class="empty-state-title" style="font-size: 18px;">No Prescriptions Issued Yet</h3>
+            <p class="empty-state-text" style="max-width: 460px; margin: 0 auto 20px auto;">
+                You don't have any recorded medical prescriptions yet. Once you complete a doctor consultation, your official prescriptions and medicine plans will be displayed here.
+            </p>
+            <a href="{% url 'create-appointment' %}" class="btn btn-primary">
+                <i class="fa-regular fa-calendar-plus"></i>
+                <span>Book a Consultation</span>
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

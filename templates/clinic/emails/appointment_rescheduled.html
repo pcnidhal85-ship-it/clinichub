@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointment Rescheduled - ClinicHub</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 620px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0;">
+
+          <!-- Brand Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 32px 36px; text-align: left;">
+              <div style="display: inline-block; background-color: rgba(255, 255, 255, 0.18); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px;">
+                <span style="font-size: 20px; vertical-align: middle;">🏥</span>
+                <span style="color: #ffffff; font-weight: 700; font-size: 16px; letter-spacing: 0.5px; vertical-align: middle; margin-left: 6px;">ClinicHub</span>
+              </div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; line-height: 1.2;">Appointment Rescheduled</h1>
+              <p style="margin: 6px 0 0 0; color: #e0f2fe; font-size: 14px;">Your consultation has been updated with a new time slot</p>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 32px 36px;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; color: #334155;">
+                Hello <strong>{{ patient_name }}</strong>,
+              </p>
+              <p style="margin: 0 0 28px 0; font-size: 15px; color: #475569; line-height: 1.6;">
+                Your appointment at ClinicHub has been rescheduled. Your updated appointment details and queue token are shown below:
+              </p>
+
+              <!-- Queue Token Highlight Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 2px dashed #0284c7; border-radius: 14px; margin-bottom: 28px; text-align: center;">
+                <tr>
+                  <td style="padding: 24px 20px;">
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #0284c7; margin-bottom: 6px;">
+                      Updated Queue Token
+                    </div>
+                    <div style="font-size: 42px; font-weight: 800; color: #0369a1; letter-spacing: -1px; margin-bottom: 8px;">
+                      #{{ token_number }}
+                    </div>
+                    <div style="display: inline-block; background-color: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid #bae6fd;">
+                      ↻ Rescheduled
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Appointment Details Grid -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 28px; overflow: hidden;">
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 16px 20px; width: 40%; font-size: 13px; font-weight: 600; text-transform: uppercase; color: #64748b; background-color: #f8fafc;">
+                    Doctor
+                  </td>
+                  <td style="padding: 16px 20px; font-size: 15px; font-weight: 600; color: #0f172a;">
+                    {{ doctor_display }}
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 16px 20px; font-size: 13px; font-weight: 600; text-transform: uppercase; color: #64748b; background-color: #f8fafc;">
+                    Department
+                  </td>
+                  <td style="padding: 16px 20px; font-size: 15px; color: #334155;">
+                    {{ department_name }}
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 16px 20px; font-size: 13px; font-weight: 600; text-transform: uppercase; color: #64748b; background-color: #f8fafc;">
+                    New Date
+                  </td>
+                  <td style="padding: 16px 20px; font-size: 15px; font-weight: 600; color: #0f172a;">
+                    {{ formatted_date }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 20px; font-size: 13px; font-weight: 600; text-transform: uppercase; color: #64748b; background-color: #f8fafc;">
+                    New Time Window
+                  </td>
+                  <td style="padding: 16px 20px; font-size: 15px; font-weight: 600; color: #0284c7;">
+                    {{ time_display }}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Visit Guidelines -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <div style="font-size: 14px; font-weight: 700; color: #0369a1; margin-bottom: 8px;">
+                      ℹ️ Please Note
+                    </div>
+                    <p style="margin: 0; color: #334155; font-size: 13px; line-height: 1.6;">
+                      Please arrive 10-15 minutes prior to your new slot time. Present updated Token #{{ token_number }} at the front desk.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 36px; text-align: center; font-size: 12px; color: #94a3b8;">
+              <p style="margin: 0 0 4px 0; font-weight: 600; color: #64748b;">ClinicHub Healthcare Management System</p>
+              <p style="margin: 0;">&copy; ClinicHub. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

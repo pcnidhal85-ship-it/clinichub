@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Weekly Availability — Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }} | ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 0.7fr;
+        gap: 25px;
+    }
+    @media (max-width: 850px) {
+        .schedule-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .form-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Manage Weekly Availability Schedule
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                Set up recurring weekly time slots and consultation durations when patients can book appointments with you.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'doctor-dashboard' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Doctor Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="schedule-grid">
+        <!-- Left: Current Weekly Slots -->
+        <div class="card">
+            <div class="card-header">
+                <h3 style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-regular fa-clock" style="color: var(--primary);"></i>
+                    <span>Your Active Schedule Slots ({{ availabilities|length }})</span>
+                </h3>
+                <span class="badge badge-booked">
+                    <i class="fa-solid fa-repeat"></i> Recurring Weekly
+                </span>
+            </div>
+
+            {% if availabilities %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Working Hours</th>
+                                <th>Slot Duration</th>
+                                <th>Tokens / Slot</th>
+                                <th>Status</th>
+                                <th style="text-align: right; width: 140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in availabilities %}
+                            <tr>
+                                <td>
+                                    <strong>{{ slot.get_day_display }}</strong>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 600;">
+                                        {{ slot.start_time|time:"h:i A" }} &ndash; {{ slot.end_time|time:"h:i A" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ slot.slot_duration }} mins/slot
+                                </td>
+                                <td>
+                                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">
+                                        <i class="fa-solid fa-ticket"></i> {{ slot.tokens_per_slot|default:20 }} tokens
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if slot.is_active %}
+                                        <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                    {% else %}
+                                        <span class="badge badge-cancelled"><i class="fa-solid fa-circle-pause"></i> Paused</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                        <!-- Toggle Active -->
+                                        <form method="post" action="{% url 'toggle-availability' slot.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline btn-sm" title="{% if slot.is_active %}Pause Slot{% else %}Activate Slot{% endif %}">
+                                                {% if slot.is_active %}
+                                                    <i class="fa-solid fa-pause"></i> Pause
+                                                {% else %}
+                                                    <i class="fa-solid fa-play"></i> Activate
+                                                {% endif %}
+                                            </button>
+                                        </form>
+
+                                        <!-- Delete Slot -->
+                                        <form method="post" action="{% url 'delete-availability' slot.id %}" onsubmit="return confirm('Remove this schedule slot?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete Slot">
+                                                <i class="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fa-regular fa-calendar-xmark"></i>
+                    </div>
+                    <h4 class="empty-state-title">
+                        No Schedule Slots Configured
+                    </h4>
+                    <p class="empty-state-text">
+                        Patients cannot reserve consultation slots with you until you add at least one weekly availability slot using the form.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Add New Availability Form -->
+        <div class="card">
+            <div class="card-header">
+                <h3 style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i>
+                    <span>Add Schedule Slot</span>
+                </h3>
+            </div>
+
+            <form method="post" action="{% url 'doctor-availability' %}" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 15px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ form.non_field_errors }}</span>
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="id_day" class="form-label">Day of the Week *</label>
+                    {{ form.day }}
+                    {% if form.day.errors %}
+                        <div class="field-error">{{ form.day.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="id_start_time" class="form-label">Start Time *</label>
+                        {{ form.start_time }}
+                        {% if form.start_time.errors %}
+                            <div class="field-error">{{ form.start_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_end_time" class="form-label">End Time *</label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}
+                            <div class="field-error">{{ form.end_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="id_slot_duration" class="form-label">Slot Duration (Mins) *</label>
+                        {{ form.slot_duration }}
+                        {% if form.slot_duration.errors %}
+                            <div class="field-error">{{ form.slot_duration.errors.0 }}</div>
+                        {% endif %}
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                            E.g. 60 mins/slot
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_tokens_per_slot" class="form-label">Tokens Per Slot *</label>
+                        {{ form.tokens_per_slot }}
+                        {% if form.tokens_per_slot.errors %}
+                            <div class="field-error">{{ form.tokens_per_slot.errors.0 }}</div>
+                        {% endif %}
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                            Capacity (default 20)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    {{ form.is_active }}
+                    <label for="id_is_active" class="form-label" style="margin-bottom: 0; cursor: pointer;">
+                        Active immediately for patient booking
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Save Availability Slot</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

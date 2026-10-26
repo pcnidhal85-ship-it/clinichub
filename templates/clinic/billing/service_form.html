@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Service Tariff{% else %}Add Billable Service{% endif %} | ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 760px; margin: 0 auto; padding: 2rem 1rem;">
+
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+        <a href="{% url 'billing-service-list' %}" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--secondary); margin: 0;">
+                {% if is_edit %}Edit Catalog Service{% else %}Add New Catalog Service{% endif %}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+                Configure standard tariffs, diagnostic testing prices, and procedural charges.
+            </p>
+        </div>
+    </div>
+
+    <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 2rem;">
+        <form method="POST">
+            {% csrf_token %}
+
+            <div style="margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-weight: 600;">Service / Procedure Name *</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 3px;">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Service Category *</label>
+                    {{ form.category }}
+                </div>
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Base Tariff / Fee ($) *</label>
+                    {{ form.base_fee }}
+                    {% if form.base_fee.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 3px;">{{ form.base_fee.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Billing / CPT Code</label>
+                    {{ form.code }}
+                </div>
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Department (Optional)</label>
+                    {{ form.department }}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-weight: 600;">Specific Physician (Optional custom fee)</label>
+                {{ form.doctor }}
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label class="form-label" style="font-weight: 600;">Description & Scope</label>
+                {{ form.description }}
+            </div>
+
+            <div style="margin-bottom: 1.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" style="font-weight: 600; font-size: 0.9rem; cursor: pointer; margin: 0;">
+                    Service is Active for Billing
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+                <a href="{% url 'billing-service-list' %}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.75rem; font-weight: 700;">
+                    <i class="fa-solid fa-save"></i> Save Service
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

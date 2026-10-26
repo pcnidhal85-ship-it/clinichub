@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Patient History — {{ patient }} | ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-history-header {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow-sm);
+    }
+    .profile-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border-color);
+    }
+    .consultation-record-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 22px 25px;
+        margin-bottom: 18px;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition);
+    }
+    .consultation-record-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+        <a href="{% url 'doctor-dashboard' %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Doctor Dashboard</span>
+        </a>
+        <a href="{% url 'doctor-appointments' %}" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-list-ul"></i>
+            <span>All Appointments</span>
+        </a>
+    </div>
+
+    <!-- Patient Profile Header -->
+    <div class="patient-history-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <span class="user-badge user-badge-patient" style="margin-bottom: 8px;">
+                    <i class="fa-solid fa-folder-medical"></i> Patient Medical File
+                </span>
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0;">
+                    {{ patient }}
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <span><i class="fa-regular fa-envelope" style="color: var(--primary);"></i> {{ patient.user.email }}</span>
+                    <span><i class="fa-solid fa-phone" style="color: var(--primary);"></i> {{ patient.user.phone_number|default:"No phone provided" }}</span>
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Blood Group</div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--primary); display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-droplet" style="color: #ef4444; font-size: 20px;"></i>
+                    <span>{{ patient.blood_group|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-meta-grid">
+            <div>
+                <span style="display: block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <i class="fa-regular fa-calendar" style="color: var(--primary);"></i> Date of Birth
+                </span>
+                <strong>{{ patient.date_of_birth|default:"Not specified" }}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <i class="fa-solid fa-venus-mars" style="color: var(--primary);"></i> Gender
+                </span>
+                <strong>{{ patient.get_gender_display|default:"Not specified" }}</strong>
+            </div>
+            <div>
+                <span style="display: block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <i class="fa-solid fa-phone-volume" style="color: #ef4444;"></i> Emergency Contact
+                </span>
+                <strong>{{ patient.emergency_contact_name|default:"Not specified" }}</strong>
+                {% if patient.emergency_contact_phone %}
+                    <div style="font-size: 12px; color: var(--text-secondary);">{{ patient.emergency_contact_phone }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <span style="display: block; font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">
+                    <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> Address
+                </span>
+                <span>{{ patient.address|default:"Not specified" }}</span>
+            </div>
+        </div>
+
+        <!-- Enduring Medical File & Allergies Alert -->
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 13.5px;">
+                <div>
+                    <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #991b1b; display: block;">Allergies:</span>
+                    {% if medical_history.allergies %}
+                        <strong style="color: #dc2626;">{{ medical_history.allergies }}</strong>
+                    {% else %}
+                        <strong style="color: var(--text-muted);">No known allergies</strong>
+                    {% endif %}
+                </div>
+                <div>
+                    <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); display: block;">Chronic Conditions:</span>
+                    <strong>{{ medical_history.chronic_conditions|default:"None documented" }}</strong>
+                </div>
+                {% if vitals %}
+                <div>
+                    <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--primary); display: block;">Latest BP:</span>
+                    <strong>{{ vitals.0.blood_pressure_display }}</strong> ({{ vitals.0.recorded_at|date:"M j" }})
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'edit-patient-medical-history' patient.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-notes-medical"></i> Edit Medical File
+                </a>
+                <a href="{% url 'record-patient-vitals' patient.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-heart-pulse"></i> Log Vitals
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointments & Medical Notes Timeline -->
+    <div style="margin-bottom: 25px;">
+        <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-notes-medical" style="color: var(--primary);"></i>
+            <span>Consultation History & Clinical Records ({{ appointments|length }})</span>
+        </h2>
+
+        {% if appointments %}
+            {% for apt in appointments %}
+                <div class="consultation-record-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fa-regular fa-calendar-check" style="color: var(--primary);"></i>
+                                {{ apt.appointment_date|date:"F j, Y" }}
+                            </span>
+                            <span style="font-size: 14px; color: var(--text-secondary); margin-left: 8px;">
+                                at {{ apt.appointment_time|time:"h:i A" }}
+                            </span>
+                            {% if apt.token %}
+                                <span class="badge badge-booked" style="margin-left: 8px;">
+                                    <i class="fa-solid fa-ticket"></i> Token #{{ apt.token.formatted_token_number }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            {% if apt.prescription %}
+                                <a href="{% url 'prescription-print' apt.prescription.id %}" target="_blank" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-print"></i> Print Rx #{{ apt.prescription.id|stringformat:"04d" }}
+                                </a>
+                            {% endif %}
+
+                            {% if apt.status == 'COMPLETED' %}
+                                <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                            {% elif apt.status == 'IN_CONSULTATION' %}
+                                <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> In Consultation</span>
+                            {% elif apt.status == 'WAITING' %}
+                                <span class="badge badge-waiting"><i class="fa-solid fa-clock"></i> Waiting</span>
+                            {% else %}
+                                <span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> {{ apt.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Consulting Physician: <strong>Dr. {{ apt.doctor.user.first_name }} {{ apt.doctor.user.last_name }}</strong>
+                        ({{ apt.doctor.department.name }} &bull; {{ apt.doctor.specialization }})
+                    </div>
+
+                    {% if apt.reason %}
+                        <div style="background: var(--bg-alt); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13.5px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                            <strong>Patient Reason for Visit:</strong> {{ apt.reason }}
+                        </div>
+                    {% endif %}
+
+                    {% if apt.medical_record %}
+                        <div style="border-left: 3px solid #db2777; padding-left: 14px; margin-top: 10px; margin-bottom: 12px; background: #fdf2f8; padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                            <div style="font-size: 12px; font-weight: 700; color: #db2777; text-transform: uppercase; margin-bottom: 4px;">
+                                <i class="fa-solid fa-stethoscope"></i> Diagnosis:
+                            </div>
+                            <div style="font-size: 14.5px; font-weight: 700; color: #831843;">
+                                {{ apt.medical_record.diagnosis }}
+                            </div>
+                            {% if apt.medical_record.treatment_plan %}
+                                <div style="font-size: 13px; color: #9d174d; margin-top: 4px;">
+                                    {{ apt.medical_record.treatment_plan }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if apt.notes %}
+                        <div style="border-left: 3px solid var(--primary); padding-left: 14px; margin-top: 10px;">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-file-waveform"></i>
+                                <span>Clinical Notes & Advice:</span>
+                            </div>
+                            <div style="font-size: 13.5px; color: var(--text-primary); line-height: 1.6; white-space: pre-line;">
+                                {{ apt.notes }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if apt.doctor == doctor and apt.status != 'COMPLETED' %}
+                        <div style="margin-top: 15px; text-align: right;">
+                            <a href="{% url 'consultation-workspace' apt.id %}" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-stethoscope"></i>
+                                <span>Open Consultation Workspace</span>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-regular fa-folder-open"></i>
+                </div>
+                <h4 class="empty-state-title">
+                    No Consultation Records on File
+                </h4>
+                <p class="empty-state-text">
+                    This patient has no recorded visits or medical consultation files in ClinicHub.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Vitals History — {{ patient }} | ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Vital Signs History — {{ patient }}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14px;">
+                Track chronological trends in blood pressure, pulse, temperature, and BMI over time.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            {% if user.user_type in "DOCTOR,STAFF,ADMIN" or user.is_superuser %}
+            <a href="{% url 'record-patient-vitals' patient.id %}?next={{ request.path }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i>
+                <span>Record New Vitals</span>
+            </a>
+            {% endif %}
+            <a href="javascript:history.back()" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+        </div>
+    </div>
+
+    {% if vitals %}
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Recorded Date</th>
+                            <th>Blood Pressure</th>
+                            <th>Pulse Rate</th>
+                            <th>Body Temp</th>
+                            <th>Weight / Height</th>
+                            <th>BMI</th>
+                            <th>SpO2</th>
+                            <th>Resp. Rate</th>
+                            <th>Observer</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in vitals %}
+                        <tr>
+                            <td style="font-weight: 700; color: var(--text-primary);">
+                                {{ v.recorded_at|date:"M j, Y — H:i" }}
+                            </td>
+                            <td>
+                                <strong style="color: var(--primary); font-size: 14px;">{{ v.blood_pressure_display }}</strong>
+                            </td>
+                            <td>{{ v.pulse_rate|default:"-" }} bpm</td>
+                            <td>{{ v.temperature|default:"-" }}°F</td>
+                            <td>{{ v.weight_kg|default:"-" }} kg / {{ v.height_cm|default:"-" }} cm</td>
+                            <td>
+                                {% if v.bmi %}
+                                    <span class="badge badge-booked" style="font-size: 11.5px;">{{ v.bmi }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>{{ v.spo2|default:"-" }}%</td>
+                            <td>{{ v.respiratory_rate|default:"-" }} bpm</td>
+                            <td style="font-size: 12.5px; color: var(--text-secondary);">
+                                {{ v.recorded_by.first_name|default:v.recorded_by.username|default:"Clinical Staff" }}
+                            </td>
+                            <td style="font-size: 12px; color: var(--text-muted);">
+                                {{ v.notes|default:"-" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card empty-state" style="padding: 50px 20px;">
+            <div class="empty-state-icon">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <h3 class="empty-state-title">No Vitals Recorded</h3>
+            <p class="empty-state-text">
+                No vital signs have been logged yet for {{ patient }}.
+            </p>
+            {% if user.user_type in "DOCTOR,STAFF,ADMIN" or user.is_superuser %}
+            <a href="{% url 'record-patient-vitals' patient.id %}?next={{ request.path }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i>
+                <span>Log First Vitals</span>
+            </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

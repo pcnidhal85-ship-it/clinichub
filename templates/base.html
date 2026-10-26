@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}ClinicHub — Modern Healthcare Management{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Global Design System CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="header-navbar">
+        <div class="nav-container">
+            <a href="{% url 'home' %}" class="brand-logo" title="ClinicHub Home">
+                <span class="brand-icon-wrapper">
+                    <i class="fa-solid fa-staff-snake"></i>
+                </span>
+                <span>ClinicHub</span>
+            </a>
+
+            <nav>
+                <ul class="nav-menu">
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == "PATIENT" %}
+                            <li><a href="{% url 'patient-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span></a></li>
+                            <li><a href="{% url 'create-appointment' %}" class="nav-link"><i class="fa-regular fa-calendar-plus"></i> <span>Book Visit</span></a></li>
+                            <li><a href="{% url 'my-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-days"></i> <span>Appointments</span></a></li>
+                            <li><a href="{% url 'patient-prescriptions' %}" class="nav-link"><i class="fa-solid fa-file-prescription"></i> <span>Prescriptions</span></a></li>
+                            <li><a href="{% url 'patient-billing-history' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
+                            <li><span class="user-badge user-badge-patient"><i class="fa-regular fa-user"></i> Patient</span></li>
+                        {% elif user.user_type == "STAFF" %}
+                            <li><a href="{% url 'staff-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span></a></li>
+                            <li><a href="{% url 'today-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-check"></i> <span>Reception</span></a></li>
+                            <li><a href="{% url 'queue' %}" class="nav-link"><i class="fa-solid fa-users-line"></i> <span>Waiting Queue</span></a></li>
+                            <li><a href="{% url 'staff-patient-search' %}" class="nav-link"><i class="fa-solid fa-magnifying-glass"></i> <span>Patients</span></a></li>
+                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Labs</span></a></li>
+                            <li><span class="user-badge user-badge-staff"><i class="fa-solid fa-id-badge"></i> {{ user.get_staff_role_display|default:"Clinic Staff" }}</span></li>
+                        {% elif user.user_type == "DOCTOR" %}
+                            <li><a href="{% url 'doctor-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-line"></i> <span>Care Portal</span></a></li>
+                            <li><a href="{% url 'doctor-appointments' %}" class="nav-link"><i class="fa-solid fa-stethoscope"></i> <span>Appointments</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Lab Tests</span></a></li>
+                            <li><a href="{% url 'doctor-availability' %}" class="nav-link"><i class="fa-regular fa-clock"></i> <span>My Schedule</span></a></li>
+                            <li><span class="user-badge user-badge-doctor"><i class="fa-solid fa-user-doctor"></i> Dr. {{ user.first_name|cut:"Dr. "|cut:"Dr." }} {{ user.last_name }}{% if user.doctor_profile.department %} ({{ user.doctor_profile.department.name }}){% elif user.doctor_role %} ({{ user.get_doctor_role_display }}){% endif %}</span></li>
+                        {% elif user.user_type == "ADMIN" or user.is_superuser %}
+                            <li><a href="{% url 'admin-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high"></i> <span>Command Center</span></a></li>
+                            <li><a href="{% url 'admin-doctors' %}" class="nav-link"><i class="fa-solid fa-user-doctor"></i> <span>Doctors</span></a></li>
+                            <li><a href="{% url 'admin-staff' %}" class="nav-link"><i class="fa-solid fa-users-gear"></i> <span>Staff</span></a></li>
+                            <li><a href="{% url 'admin-departments' %}" class="nav-link"><i class="fa-solid fa-hospital"></i> <span>Departments</span></a></li>
+                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Labs</span></a></li>
+                            <li><a href="{% url 'admin-reports' %}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> <span>Reports</span></a></li>
+                            <li><span class="user-badge user-badge-admin"><i class="fa-solid fa-crown"></i> Admin</span></li>
+                        {% endif %}
+
+                        <li class="nav-actions">
+                            <span style="font-size: 13.5px; color: var(--text-secondary); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fa-regular fa-circle-user" style="color: var(--primary);"></i>
+                                {{ user.first_name|default:user.username }}
+                            </span>
+                            <a href="{% url 'logout' %}" class="btn btn-outline btn-sm">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                <span>Log Out</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li><a href="{% url 'home' %}" class="nav-link"><i class="fa-solid fa-house"></i> <span>Home</span></a></li>
+                        <li><a href="{% url 'login' %}" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Sign In</span></a></li>
+                        <li><a href="{% url 'signup' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> <span>Register</span></a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Global Flash Alerts -->
+    {% if messages %}
+    <div class="alerts-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                {% if message.tags == 'success' %}
+                    <i class="fa-solid fa-circle-check" style="font-size: 16px;"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px;"></i>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <i class="fa-solid fa-circle-exclamation" style="font-size: 16px;"></i>
+                {% else %}
+                    <i class="fa-solid fa-circle-info" style="font-size: 16px;"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Site Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--primary);"><i class="fa-solid fa-heart-pulse"></i></span>
+                <span><strong>ClinicHub</strong> &copy; {% now "Y" %} &mdash; Thoughtful patient care, transparent scheduling.</span>
+            </div>
+            <div class="footer-links">
+                <a href="{% url 'home' %}">Home</a>
+                {% if user.is_authenticated %}
+                    {% if user.user_type == "PATIENT" %}
+                        <a href="{% url 'create-appointment' %}">Book Appointment</a>
+                        <a href="{% url 'patient-dashboard' %}">Dashboard</a>
+                    {% elif user.user_type == "DOCTOR" %}
+                        <a href="{% url 'doctor-dashboard' %}">Doctor Dashboard</a>
+                        <a href="{% url 'doctor-availability' %}">My Schedule</a>
+                    {% elif user.user_type == "STAFF" or user.is_superuser %}
+                        <a href="{% url 'today-appointments' %}">Today's Schedule</a>
+                        <a href="{% url 'queue' %}">Queue</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'login' %}">Log In</a>
+                    <a href="{% url 'signup' %}">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

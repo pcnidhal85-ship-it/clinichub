@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Your Email — ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px; margin: 40px auto;">
+    <div class="card" style="text-align: center; padding: 45px 35px;">
+        <div class="icon-box icon-box-xl icon-box-primary" style="margin: 0 auto 20px;">
+            <i class="fa-solid fa-paper-plane"></i>
+        </div>
+
+        <span class="badge badge-booked" style="margin-bottom: 14px;">
+            <i class="fa-regular fa-envelope"></i> Activation Email Sent
+        </span>
+
+        <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px;">
+            Confirm Your Email Address
+        </h1>
+
+        <p style="color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; margin-bottom: 24px;">
+            We've sent an activation link to your registered email address.
+            Please open the email and click the confirmation link to activate your ClinicHub patient account.
+        </p>
+
+        <div style="background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; font-size: 13.5px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 10px; text-align: left;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary); font-size: 16px; margin-top: 2px;"></i>
+            <span><strong>One-Time Activation:</strong> Email verification protects your healthcare data. The activation link remains valid for 24 hours.</span>
+        </div>
+
+        <a href="{% url 'login' %}" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>Proceed to Sign In</span>
+        </a>
+
+        <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+            Didn't receive the email? Please check your spam or promotions tab.
+        </p>
+    </div>
+</div>
+{% endblock %}

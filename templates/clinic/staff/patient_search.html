@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Directory & Search — ClinicHub Front Desk{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-box-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 25px;
+    }
+
+    .patient-search-input-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .patient-search-input {
+        flex: 1;
+        height: 48px;
+        font-size: 15px;
+        border-radius: var(--radius-md);
+        border: 1.5px solid var(--border-color);
+        padding: 0 16px;
+        transition: var(--transition);
+    }
+
+    .patient-search-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(8, 127, 140, 0.15);
+        outline: none;
+    }
+
+    .patient-card-item {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        transition: var(--transition);
+    }
+
+    .patient-card-item:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .patient-avatar-circle {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: #e0f2fe;
+        color: #0284c7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .selected-patient-panel {
+        background: white;
+        border: 2px solid var(--primary);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow-md);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Patient Directory & Search
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+                Lookup patient records, contact numbers, past consultation history, and upcoming visits.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'staff-register-patient' %}" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Register New Patient</span>
+            </a>
+            <a href="{% url 'staff-dashboard' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Staff Hub</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Input Card -->
+    <div class="search-box-card">
+        <form method="get" action="{% url 'staff-patient-search' %}">
+            <div class="patient-search-input-group">
+                <div style="position: relative; flex: 1;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 16px; top: 17px; color: var(--text-muted); font-size: 15px;"></i>
+                    <input
+                        type="text"
+                        name="q"
+                        value="{{ query }}"
+                        placeholder="Search by patient name, phone number, email address, or blood group..."
+                        class="patient-search-input"
+                        style="padding-left: 44px; width: 100%;"
+                        autofocus
+                    >
+                </div>
+                <button type="submit" class="btn btn-primary" style="height: 48px; padding: 0 24px;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Search</span>
+                </button>
+                {% if query %}
+                    <a href="{% url 'staff-patient-search' %}" class="btn btn-outline" style="height: 48px; padding: 0 16px; display: inline-flex; align-items: center;" title="Clear Search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                {% endif %}
+            </div>
+            <div style="margin-top: 10px; font-size: 12.5px; color: var(--text-muted); display: flex; gap: 15px; flex-wrap: wrap;">
+                <span><i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> Quick tip: Enter full or partial phone numbers, or blood group codes like <code>O+</code>, <code>A-</code>, <code>B+</code>.</span>
+                {% if query %}
+                    <span style="color: var(--primary); font-weight: 600;">Found {{ total_results }} matching record{{ total_results|pluralize }}.</span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Selected Patient File Details (if selected) -->
+    {% if selected_patient %}
+    <div class="selected-patient-panel">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div class="patient-avatar-circle" style="width: 56px; height: 56px; font-size: 20px; background: var(--primary); color: white;">
+                    {{ selected_patient.user.first_name|slice:":1" }}{{ selected_patient.user.last_name|slice:":1" }}
+                </div>
+                <div>
+                    <h2 style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-bottom: 2px;">
+                        {{ selected_patient.user.first_name }} {{ selected_patient.user.last_name }}
+                    </h2>
+                    <div style="font-size: 13.5px; color: var(--text-secondary); display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <span>Patient ID: <strong>#{{ selected_patient.id }}</strong></span>
+                        &bull;
+                        <span>Username: <code>{{ selected_patient.user.username }}</code></span>
+                        &bull;
+                        <span>Registered: {{ selected_patient.created_at|date:"M j, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{% url 'record-patient-vitals' selected_patient.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-heart-pulse" style="color: #ef4444;"></i>
+                    <span>Record Vitals</span>
+                </a>
+                <a href="{% url 'edit-patient-medical-history' selected_patient.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-notes-medical" style="color: var(--primary);"></i>
+                    <span>Allergies & History</span>
+                </a>
+                <a href="{% url 'walk-in-booking' %}?patient_id={{ selected_patient.id }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+                    <span>Walk-In</span>
+                </a>
+                <a href="{% url 'staff-patient-search' %}{% if query %}?q={{ query }}{% endif %}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Close</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Demographics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; background: var(--bg-alt); padding: 18px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 24px;">
+            <div style="min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.4px;">Contact Phone</span>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {% if selected_patient.user.phone_number %}
+                        <a href="tel:{{ selected_patient.user.phone_number }}" style="color: var(--text-primary); text-decoration: none;">
+                            <i class="fa-solid fa-phone" style="font-size: 11px; color: var(--primary); margin-right: 4px;"></i>{{ selected_patient.user.phone_number }}
+                        </a>
+                    {% else %}
+                        <span style="color: var(--text-muted); font-weight: 500;">Not provided</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.4px;">Email Address</span>
+                <div style="font-size: 13.5px; font-weight: 700; color: var(--text-primary); word-break: break-all; overflow-wrap: anywhere; line-height: 1.3;" title="{{ selected_patient.user.email }}">
+                    {{ selected_patient.user.email }}
+                </div>
+            </div>
+
+            <div style="min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.4px;">Gender / Blood Group</span>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span>{{ selected_patient.get_gender_display|default:"Unspecified" }}</span>
+                    {% if selected_patient.blood_group %}
+                        <span class="badge" style="background: #fee2e2; color: #dc2626; padding: 2px 8px; font-size: 11px; font-weight: 800;">{{ selected_patient.blood_group }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.4px;">Date of Birth</span>
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">
+                    {% if selected_patient.date_of_birth %}{{ selected_patient.date_of_birth|date:"F j, Y" }}{% else %}<span style="color: var(--text-muted); font-weight: 500;">Not recorded</span>{% endif %}
+                </div>
+            </div>
+
+            {% if selected_patient.emergency_contact_name or selected_patient.emergency_contact_phone %}
+            <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 4px; min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 2px; letter-spacing: 0.4px;">Emergency Contact</span>
+                <strong style="font-size: 14px; color: var(--text-primary);">
+                    {{ selected_patient.emergency_contact_name|default:"Contact" }} &mdash;
+                    {% if selected_patient.emergency_contact_phone %}<a href="tel:{{ selected_patient.emergency_contact_phone }}">{{ selected_patient.emergency_contact_phone }}</a>{% endif %}
+                </strong>
+            </div>
+            {% endif %}
+
+            {% if selected_patient.address %}
+            <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 4px; min-width: 0;">
+                <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 2px; letter-spacing: 0.4px;">Address</span>
+                <span style="font-size: 13.5px; color: var(--text-primary);">{{ selected_patient.address }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Appointment & Consultation History for Selected Patient -->
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i>
+            <span>Consultation & Visit History ({{ patient_history|length }})</span>
+        </h3>
+
+        {% if patient_history %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Token</th>
+                            <th>Visit Date & Time</th>
+                            <th>Doctor & Specialty</th>
+                            <th>Status</th>
+                            <th>Stated Reason</th>
+                            <th>Clinical Summary / Notes</th>
+                            <th style="width: 150px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appt in patient_history %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--primary); font-size: 15px;">
+                                    #{{ appt.token.formatted_token_number|default:"-" }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-primary);">
+                                    {{ appt.appointment_date|date:"M j, Y" }}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">
+                                    {% if appt.time_slot %}{{ appt.time_slot }}{% else %}{{ appt.appointment_time|time:"h:i A" }}{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">Dr. {{ appt.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ appt.doctor.user.last_name }}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">{{ appt.doctor.department.name }}</div>
+                            </td>
+                            <td>
+                                {% if appt.status == 'BOOKED' %}
+                                    <span class="badge badge-booked"><i class="fa-regular fa-clock"></i> Booked</span>
+                                {% elif appt.status == 'CHECKED_IN' or appt.status == 'WAITING' %}
+                                    <span class="badge badge-checked-in"><i class="fa-solid fa-users-line"></i> Waiting</span>
+                                {% elif appt.status == 'IN_CONSULTATION' %}
+                                    <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> Consulting</span>
+                                {% elif appt.status == 'COMPLETED' %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                                {% elif appt.status == 'CANCELLED' %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> Cancelled</span>
+                                {% else %}
+                                    <span class="badge badge-no-show">{{ appt.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="font-size: 13px; color: var(--text-secondary);">
+                                    {{ appt.reason|default:"General consultation"|truncatechars:40 }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if appt.notes %}
+                                    <span style="font-size: 12.5px; color: var(--text-primary); display: block; max-width: 250px;">
+                                        {{ appt.notes|truncatechars:70 }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12px;">No notes recorded</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                {% if appt.status == "BOOKED" and appt.appointment_date == today %}
+                                    <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+                                        <form method="post" action="{% url 'check-in-patient' appt.id %}" style="margin: 0; display: inline-flex;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 11.5px; white-space: nowrap;">
+                                                <i class="fa-solid fa-clipboard-check"></i> Check In
+                                            </button>
+                                        </form>
+                                        <a href="{% url 'staff-reschedule-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 4px 6px; font-size: 11px;" title="Reschedule">
+                                            <i class="fa-solid fa-arrows-rotate"></i>
+                                        </a>
+                                        <a href="{% url 'staff-cancel-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 4px 6px; font-size: 11px; color: #dc2626; border-color: #fca5a5;" title="Cancel">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </a>
+                                    </div>
+                                {% elif appt.status == "BOOKED" %}
+                                    <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+                                        <a href="{% url 'staff-reschedule-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 11.5px;" title="Reschedule">
+                                            <i class="fa-solid fa-arrows-rotate"></i>
+                                            <span>Reschedule</span>
+                                        </a>
+                                        <a href="{% url 'staff-cancel-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 4px 7px; font-size: 11.5px; color: #dc2626; border-color: #fca5a5;" title="Cancel">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </a>
+                                    </div>
+                                {% elif appt.status == "CHECKED_IN" %}
+                                    <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+                                        <a href="{% url 'queue' %}?doctor={{ appt.doctor.id }}" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 11.5px; color: #0284c7; border-color: #bae6fd; background: #f0f9ff;" title="View in Waiting Queue">
+                                            <i class="fa-solid fa-users-line"></i>
+                                            <span>Queue</span>
+                                        </a>
+                                        <a href="{% url 'staff-cancel-appointment' appt.id %}" class="btn btn-outline btn-sm" style="padding: 4px 7px; font-size: 11.5px; color: #dc2626; border-color: #fca5a5;" title="Cancel Appointment">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12px;">&mdash;</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; margin: 15px 0;">No past consultation records for this patient.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Patient Directory Results List -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-address-book" style="color: var(--primary);"></i>
+                <span>Registered Patient Profiles ({% if query %}{{ total_results }}{% else %}Latest Registered{% endif %})</span>
+            </h3>
+            <a href="{% url 'staff-register-patient' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Register New</span>
+            </a>
+        </div>
+
+        {% if patients_data %}
+            <div style="padding: 18px 20px;">
+                {% for item in patients_data %}
+                <div class="patient-card-item">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div class="patient-avatar-circle">
+                            {{ item.patient.user.first_name|slice:":1" }}{{ item.patient.user.last_name|slice:":1" }}
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <strong style="font-size: 16px; color: var(--text-primary);">
+                                    {{ item.patient.user.first_name }} {{ item.patient.user.last_name }}
+                                </strong>
+                                {% if item.patient.blood_group %}
+                                    <span class="badge" style="background: #fee2e2; color: #dc2626; font-size: 11px;">
+                                        {{ item.patient.blood_group }}
+                                    </span>
+                                {% endif %}
+                                <span style="font-size: 12px; color: var(--text-muted);">
+                                    ID #{{ item.patient.id }}
+                                </span>
+                            </div>
+
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 15px; flex-wrap: wrap;">
+                                <span>
+                                    <i class="fa-solid fa-phone" style="color: var(--primary); font-size: 11px;"></i>
+                                    {{ item.patient.user.phone_number|default:"No phone registered" }}
+                                </span>
+                                <span>
+                                    <i class="fa-regular fa-envelope" style="color: var(--primary); font-size: 11px;"></i>
+                                    {{ item.patient.user.email }}
+                                </span>
+                                {% if item.patient.gender %}
+                                    <span>
+                                        <i class="fa-solid fa-venus-mars" style="color: var(--primary); font-size: 11px;"></i>
+                                        {{ item.patient.get_gender_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <div style="text-align: right; margin-right: 6px;">
+                            <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">
+                                {{ item.total_visits }} consultation{{ item.total_visits|pluralize }}
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">
+                                {% if item.upcoming_appointment %}
+                                    <span style="color: #059669; font-weight: 600;">Upcoming: {{ item.upcoming_appointment.appointment_date|date:"M j" }}</span>
+                                {% elif item.last_appointment %}
+                                    Last seen: {{ item.last_appointment.appointment_date|date:"M j, Y" }}
+                                {% else %}
+                                    No visits yet
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <a href="?patient_id={{ item.patient.id }}{% if query %}&q={{ query }}{% endif %}" class="btn btn-outline btn-sm">
+                            <i class="fa-solid fa-file-medical"></i>
+                            <span>View File</span>
+                        </a>
+
+                        <a href="{% url 'walk-in-booking' %}?patient_id={{ item.patient.id }}" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+                            <span>Book Walk-In</span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-solid fa-user-slash"></i>
+                </div>
+                <h3 class="empty-state-title">
+                    No Patients Found
+                </h3>
+                <p class="empty-state-text">
+                    {% if query %}
+                        No patient records matched "<strong>{{ query }}</strong>". Check spelling or register them as a new patient.
+                    {% else %}
+                        No patients are currently registered in the database.
+                    {% endif %}
+                </p>
+                <div style="margin-top: 15px;">
+                    <a href="{% url 'staff-register-patient' %}" class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Register This Patient Now</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

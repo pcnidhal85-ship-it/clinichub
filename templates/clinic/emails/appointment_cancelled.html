@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointment Cancelled - ClinicHub</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 620px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0;">
+
+          <!-- Brand Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #475569 0%, #334155 100%); padding: 32px 36px; text-align: left;">
+              <div style="display: inline-block; background-color: rgba(255, 255, 255, 0.18); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px;">
+                <span style="font-size: 20px; vertical-align: middle;">🏥</span>
+                <span style="color: #ffffff; font-weight: 700; font-size: 16px; letter-spacing: 0.5px; vertical-align: middle; margin-left: 6px;">ClinicHub</span>
+              </div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; line-height: 1.2;">Appointment Cancelled</h1>
+              <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 14px;">Your consultation has been cancelled as requested</p>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 32px 36px;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; color: #334155;">
+                Hello <strong>{{ patient_name }}</strong>,
+              </p>
+              <p style="margin: 0 0 28px 0; font-size: 15px; color: #475569; line-height: 1.6;">
+                This email is to confirm that your appointment scheduled for <strong>{{ formatted_date }}</strong> with <strong>{{ doctor_display }}</strong> has been cancelled.
+              </p>
+
+              <!-- Cancellation Summary -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; margin-bottom: 28px;">
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <div style="font-size: 14px; font-weight: 700; color: #991b1b; margin-bottom: 8px;">
+                      Cancelled Consultation Details
+                    </div>
+                    <p style="margin: 0 0 4px 0; font-size: 14px; color: #334155;">
+                      <strong>Doctor:</strong> {{ doctor_display }} ({{ department_name }})
+                    </p>
+                    <p style="margin: 0 0 4px 0; font-size: 14px; color: #334155;">
+                      <strong>Original Slot:</strong> {{ formatted_date }} at {{ time_display }}
+                    </p>
+                    {% if reason %}
+                    <p style="margin: 0; font-size: 13px; color: #64748b;">
+                      <strong>Cancellation Note:</strong> {{ reason }}
+                    </p>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #475569;">
+                If you wish to book a new appointment at a later date, you can do so anytime through your ClinicHub patient portal.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 36px; text-align: center; font-size: 12px; color: #94a3b8;">
+              <p style="margin: 0 0 4px 0; font-weight: 600; color: #64748b;">ClinicHub Healthcare Management System</p>
+              <p style="margin: 0;">&copy; ClinicHub. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

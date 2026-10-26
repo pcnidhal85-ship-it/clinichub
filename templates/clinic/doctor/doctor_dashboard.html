@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Portal — Dashboard | ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 18px;
+        margin-bottom: 25px;
+    }
+    .doctor-stat-card {
+        background: white;
+        padding: 20px 22px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .doctor-stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    .active-consultation-banner {
+        background: linear-gradient(135deg, #087f8c 0%, #04434a 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: white;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: var(--shadow-md);
+    }
+    .next-patient-card {
+        background: #f0fdf4;
+        border: 2px dashed #86efac;
+        border-radius: var(--radius-lg);
+        padding: 22px 25px;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 18px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header with Doctor Details -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }}
+                </h1>
+                <span class="user-badge user-badge-doctor">{{ doctor.department.name }}</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 14.5px;">
+                {{ doctor.specialization }} &bull; License #{{ doctor.license_number }} &bull; <strong>{{ today|date:"l, F j, Y" }}</strong>
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'doctor-queue' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-users-line"></i>
+                <span>Waiting Queue ({{ waiting_count }})</span>
+            </a>
+            <a href="{% url 'doctor-appointments' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-list-ul"></i>
+                <span>All Appointments</span>
+            </a>
+            <a href="{% url 'doctor-availability' %}" class="btn btn-primary btn-sm">
+                <i class="fa-regular fa-clock"></i>
+                <span>My Weekly Schedule</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Consultation in Progress Banner -->
+    {% if in_consultation %}
+    <div class="active-consultation-banner">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span style="background: #22c55e; width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
+                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #86efac;">
+                    Consultation in Progress
+                </span>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 800; color: white; margin: 0 0 4px 0;">
+                Patient: {{ in_consultation.patient }}
+                <span style="font-weight: 400; opacity: 0.9; font-size: 17px;">
+                    (#{{ in_consultation.token.formatted_token_number|default:"-" }})
+                </span>
+            </h2>
+            <div style="font-size: 13.5px; opacity: 0.92;">
+                Slot: {{ in_consultation.appointment_time|time:"h:i A" }} &bull; Reason: {{ in_consultation.reason|default:"Routine clinical visit"|truncatechars:45 }}
+            </div>
+        </div>
+
+        <div>
+            <a href="{% url 'consultation-workspace' in_consultation.id %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
+                <i class="fa-solid fa-stethoscope"></i>
+                <span>Open Consultation Workspace</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 4 Stats Cards -->
+    <div class="stats-grid-4">
+        <div class="doctor-stat-card">
+            <div class="doctor-stat-icon" style="background: #e0f2fe; color: #0284c7;">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">{{ total_today }}</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Total Today</div>
+            </div>
+        </div>
+
+        <div class="doctor-stat-card">
+            <div class="doctor-stat-icon" style="background: #fef3c7; color: #d97706;">
+                <i class="fa-solid fa-users-line"></i>
+            </div>
+            <div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">{{ waiting_count }}</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Waiting in Queue</div>
+            </div>
+        </div>
+
+        <div class="doctor-stat-card">
+            <div class="doctor-stat-icon" style="background: #fae8ff; color: #a21caf;">
+                <i class="fa-solid fa-stethoscope"></i>
+            </div>
+            <div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">
+                    {% if in_consultation %}1{% else %}0{% endif %}
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">In Consultation</div>
+            </div>
+        </div>
+
+        <div class="doctor-stat-card">
+            <div class="doctor-stat-icon" style="background: #dcfce7; color: #16a34a;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <div style="font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1;">{{ completed_today }}</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Completed Today</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Patient Card (Only if not currently in consultation and patient is waiting) -->
+    {% if not in_consultation and next_patient %}
+    <div class="next-patient-card">
+        <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #166534; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-bell"></i>
+                <span>Next Patient Ready in Waiting Room</span>
+            </div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);">
+                #{{ next_patient.token.formatted_token_number }} &mdash; {{ next_patient.patient }}
+            </div>
+            <div style="font-size: 13.5px; color: var(--text-secondary); margin-top: 3px;">
+                Scheduled Slot: <strong>{{ next_patient.appointment_time|time:"h:i A" }}</strong> &bull; Reason: {{ next_patient.reason|default:"General consultation" }}
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'call-next-patient' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fa-solid fa-bell"></i>
+                <span>Call Patient Now</span>
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Today's Patient Schedule Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i>
+                <span>Today's Patient Schedule ({{ today_appointments|length }})</span>
+            </h3>
+            <span class="badge badge-booked">
+                <i class="fa-regular fa-calendar"></i> {{ today|date:"M j, Y" }}
+            </span>
+        </div>
+
+        {% if today_appointments %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 85px;">Token</th>
+                            <th>Patient Name</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Reason / Symptoms</th>
+                            <th style="text-align: right; width: 240px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in today_appointments %}
+                        <tr {% if apt.status == 'IN_CONSULTATION' %}style="background: #f0fdf4;"{% endif %}>
+                            <td>
+                                <strong style="font-size: 16px; color: var(--primary);">
+                                    #{{ apt.token.formatted_token_number|default:"-" }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <a href="{% url 'doctor-patient-history' apt.patient.id %}" style="font-weight: 700; color: var(--text-primary);">
+                                        {{ apt.patient }}
+                                    </a>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    {{ apt.patient.gender|default:"" }} &bull; {{ apt.patient.blood_group|default:"" }}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ apt.appointment_time|time:"h:i A" }}</strong>
+                            </td>
+                            <td>
+                                {% if apt.status == 'BOOKED' %}
+                                    <span class="badge badge-booked"><i class="fa-regular fa-clock"></i> Booked</span>
+                                {% elif apt.status == 'CHECKED_IN' or apt.status == 'WAITING' %}
+                                    <span class="badge badge-waiting"><i class="fa-solid fa-users-line"></i> Waiting</span>
+                                {% elif apt.status == 'IN_CONSULTATION' %}
+                                    <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> In Consultation</span>
+                                {% elif apt.status == 'COMPLETED' %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> {{ apt.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="font-size: 13.5px; color: var(--text-secondary);">
+                                    {{ apt.reason|default:"-"|truncatechars:45 }}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                    {% if apt.status == 'IN_CONSULTATION' %}
+                                        <a href="{% url 'consultation-workspace' apt.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                            <span>Resume</span>
+                                        </a>
+                                    {% elif apt.status == 'WAITING' or apt.status == 'CHECKED_IN' or apt.status == 'BOOKED' %}
+                                        <form method="post" action="{% url 'start-consultation' apt.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fa-solid fa-play"></i>
+                                                <span>Start</span>
+                                            </button>
+                                        </form>
+                                    {% elif apt.status == 'COMPLETED' %}
+                                        <a href="{% url 'consultation-workspace' apt.id %}" class="btn btn-outline btn-sm">
+                                            <i class="fa-regular fa-file-lines"></i>
+                                            <span>Notes</span>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'doctor-patient-history' apt.patient.id %}" class="btn btn-outline btn-sm" title="Patient Visit History">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span>History</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-regular fa-calendar-check"></i>
+                </div>
+                <h3 class="empty-state-title">
+                    No Appointments Scheduled for Today
+                </h3>
+                <p class="empty-state-text">
+                    You have no booked patient consultations for today. You can review upcoming dates or manage your weekly available hours.
+                </p>
+                <a href="{% url 'doctor-availability' %}" class="btn btn-outline btn-sm">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Configure Weekly Schedule</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

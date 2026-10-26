@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Confirmed — Token #{{ token.formatted_token_number }} | ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .confirmation-wrap {
+        max-width: 620px;
+        margin: 0 auto;
+        padding-bottom: 50px;
+    }
+
+    /* Perforated Digital OPD Slip (Inspired by Reference Image 4) */
+    .opd-ticket {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        position: relative;
+        margin: 25px 0 30px;
+    }
+
+    /* Scalloped / Jagged Perforated Edges */
+    .opd-ticket::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: repeating-linear-gradient(-45deg, #087f8c, #087f8c 8px, transparent 0, transparent 16px);
+    }
+
+    .opd-ticket-header {
+        background: #f8fafc;
+        padding: 24px 26px 18px;
+        border-bottom: 1.5px dashed #cbd5e1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .clinic-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .clinic-logo-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+    }
+
+    .opd-ticket-body {
+        padding: 30px 28px;
+        text-align: center;
+    }
+
+    /* Big Token Badge */
+    .token-badge-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #087f8c 0%, #034b52 100%);
+        color: white;
+        margin: 0 auto 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(8, 127, 140, 0.28);
+        border: 4px solid #ccfbf1;
+    }
+    .token-badge-number {
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+        font-family: monospace, monospace;
+    }
+    .token-badge-tag {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        opacity: 0.9;
+        margin-top: 2px;
+    }
+
+    /* Ticket Perforation Divider Line */
+    .ticket-divider {
+        position: relative;
+        height: 20px;
+        margin: 10px 0;
+    }
+    .ticket-divider::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        border-top: 2px dashed #cbd5e1;
+    }
+    .ticket-divider::after {
+        content: "";
+        position: absolute;
+        top: calc(50% - 10px);
+        left: -38px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--bg-body, #f4f7f9);
+        box-shadow: inset -2px 0 3px rgba(0,0,0,0.06);
+    }
+    .ticket-notch-right {
+        position: absolute;
+        top: calc(50% - 10px);
+        right: -38px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--bg-body, #f4f7f9);
+        box-shadow: inset 2px 0 3px rgba(0,0,0,0.06);
+    }
+
+    /* Details Grid */
+    .opd-details-grid {
+        background: #f8fafc;
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        text-align: left;
+        margin: 20px 0;
+        border: 1px solid var(--border-color);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+    @media (max-width: 500px) {
+        .opd-details-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .detail-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .detail-val {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .opd-footer-instruction {
+        background: #f0fdfa;
+        border: 1px solid #99f6e4;
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #0f766e;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-align: left;
+        margin-top: 15px;
+    }
+
+    @media print {
+        header, footer, nav, .btn, .no-print {
+            display: none !important;
+        }
+        .opd-ticket {
+            box-shadow: none !important;
+            border: 1px solid #000 !important;
+            margin: 0 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container confirmation-wrap">
+    <div style="text-align: center; margin-bottom: 15px;">
+        <div class="icon-box icon-box-xl icon-box-success" style="margin: 0 auto 16px; width: 64px; height: 64px; font-size: 30px;">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">
+            Appointment Booked!
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+            Your consultation has been confirmed. Below is your official eHealth OPD Queue Token.
+        </p>
+    </div>
+
+    <!-- OPD Digital Ticket (eHealth Kerala Style) -->
+    <div class="opd-ticket">
+        <div class="opd-ticket-header">
+            <div class="clinic-brand">
+                <div class="clinic-logo-icon">
+                    <i class="fa-solid fa-hospital"></i>
+                </div>
+                <div>
+                    <div style="font-size: 15px; font-weight: 800; color: var(--text-primary);">ClinicHub eHealth</div>
+                    <div style="font-size: 11.5px; color: var(--text-secondary);">Digital Outpatient Slip (OPD)</div>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <span class="badge badge-completed" style="font-size: 12px; padding: 5px 10px;">
+                    <i class="fa-solid fa-circle-check"></i> Confirmed
+                </span>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                    Slip #{{ appointment.id|stringformat:"06d" }}
+                </div>
+            </div>
+        </div>
+
+        <div class="opd-ticket-body">
+            <!-- Token Badge -->
+            <div class="token-badge-large">
+                <div class="token-badge-number">#{{ token.formatted_token_number }}</div>
+                <div class="token-badge-tag">OPD TOKEN</div>
+            </div>
+
+            <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+                Dr. {{ appointment.doctor.user.first_name }} {{ appointment.doctor.user.last_name }}
+            </div>
+            <div style="font-size: 13.5px; color: var(--primary); font-weight: 700;">
+                {{ appointment.doctor.department.name }} &bull; {{ appointment.doctor.specialization }}
+            </div>
+
+            <div class="ticket-divider">
+                <span class="ticket-notch-right"></span>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="opd-details-grid">
+                <div class="detail-item">
+                    <span class="detail-label"><i class="fa-regular fa-calendar"></i> Appointment Date</span>
+                    <span class="detail-val">{{ appointment.appointment_date|date:"l, M j, Y" }}</span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label"><i class="fa-regular fa-clock"></i> Time Slot</span>
+                    <span class="detail-val">
+                        {% if appointment.time_slot %}
+                            {{ appointment.time_slot }}
+                        {% else %}
+                            {{ appointment.appointment_time|time:"h:i A" }}
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label"><i class="fa-regular fa-user"></i> Patient Name</span>
+                    <span class="detail-val">{{ appointment.patient }}</span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label"><i class="fa-solid fa-id-badge"></i> Token Sequence</span>
+                    <span class="detail-val">#{{ token.formatted_token_number }} (Slot Queue)</span>
+                </div>
+            </div>
+
+            {% if appointment.reason %}
+            <div style="text-align: left; background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 15px;">
+                <span style="color: var(--text-secondary); font-weight: 600;">Clinical Reason:</span>
+                <span style="color: var(--text-primary);">{{ appointment.reason }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Check-in instructions -->
+            <div class="opd-footer-instruction">
+                <i class="fa-solid fa-bell-concierge" style="font-size: 20px; color: var(--primary); flex-shrink: 0;"></i>
+                <span>Please arrive 10 minutes prior to your time slot. Present this digital token #{{ token.formatted_token_number }} at reception desk for check-in.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;" class="no-print">
+        <button type="button" onclick="window.print()" class="btn btn-outline">
+            <i class="fa-solid fa-print"></i>
+            <span>Print OPD Slip</span>
+        </button>
+        <a href="{% url 'my-appointments' %}" class="btn btn-outline">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>My Appointments</span>
+        </a>
+        <a href="{% url 'patient-dashboard' %}" class="btn btn-primary">
+            <i class="fa-solid fa-house-medical"></i>
+            <span>Go to Dashboard</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Patient Invoice | ClinicHub Billing{% endblock %}
+
+{% block extra_css %}
+<style>
+    .invoice-form-card {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1.25rem;
+    }
+
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    .items-table th {
+        background: #f8fafc;
+        padding: 0.75rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .items-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="{% url 'billing-invoice-list' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--secondary); margin: 0;">Create New Patient Invoice</h1>
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Generate an itemized invoice for consultations, diagnostic investigations, or clinical procedures.</p>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" id="invoiceForm">
+        {% csrf_token %}
+
+        <div class="invoice-form-card">
+            <div class="form-section-title">
+                <i class="fa-solid fa-user-tag" style="color: var(--primary);"></i>
+                <span>Invoice Header & Recipient</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Patient *</label>
+                    {{ form.patient }}
+                    {% if form.patient.errors %}
+                        <div style="color: #dc2626; font-size: 0.8rem; margin-top: 3px;">{{ form.patient.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Attending Doctor (Optional)</label>
+                    {{ form.doctor }}
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Due Date</label>
+                    {{ form.due_date }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Discount ($)</label>
+                    {{ form.discount }}
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-weight: 600;">Tax Rate (%)</label>
+                    {{ form.tax_rate }}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 0.5rem;">
+                <label class="form-label" style="font-weight: 600;">Billing Notes / Terms</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <!-- Dynamic Line Items Section -->
+        <div class="invoice-form-card">
+            <div class="form-section-title" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-receipt" style="color: var(--primary);"></i>
+                    <span>Billable Line Items</span>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="addItemRowBtn" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Add Item
+                </button>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Select from our clinical catalog to auto-fill pricing, or type custom procedures and charges.
+            </p>
+
+            <div style="overflow-x: auto;">
+                <table class="items-table" id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Catalog Preset</th>
+                            <th style="width: 40%;">Description *</th>
+                            <th style="width: 12%;">Qty</th>
+                            <th style="width: 15%;">Unit Price ($)</th>
+                            <th style="width: 8%; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTbody">
+                        <!-- Default Initial Row -->
+                        <tr class="item-row">
+                            <td>
+                                <select class="form-select service-select" name="item_service[]">
+                                    <option value="">-- Custom Item --</option>
+                                    {% for s in services %}
+                                        <option value="{{ s.id }}" data-price="{{ s.base_fee }}" data-desc="{{ s.name }}" {% if forloop.first %}selected{% endif %}>
+                                            {{ s.name }} (${{ s.base_fee|floatformat:2 }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="item_desc[]" class="form-control item-desc-input" placeholder="e.g. General Physician Consultation" value="{% if services %}{{ services.0.name }}{% endif %}" required>
+                            </td>
+                            <td>
+                                <input type="number" name="item_qty[]" value="1" min="1" class="form-control item-qty-input" required>
+                            </td>
+                            <td>
+                                <input type="number" step="0.01" min="0" name="item_price[]" class="form-control item-price-input" placeholder="0.00" value="{% if services %}{{ services.0.base_fee }}{% else %}50.00{% endif %}" required>
+                            </td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn-remove-row" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 6px;" title="Remove row">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; gap: 1rem;">
+                <a href="{% url 'billing-invoice-list' %}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; padding: 0.75rem 2rem;">
+                    <i class="fa-solid fa-check"></i> Generate Invoice
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tbody = document.getElementById("itemsTbody");
+    const addBtn = document.getElementById("addItemRowBtn");
+
+    function attachRowListeners(row) {
+        const select = row.querySelector(".service-select");
+        const descInput = row.querySelector(".item-desc-input");
+        const priceInput = row.querySelector(".item-price-input");
+        const removeBtn = row.querySelector(".btn-remove-row");
+
+        if (select) {
+            select.addEventListener("change", function() {
+                const opt = select.options[select.selectedIndex];
+                if (opt && opt.value) {
+                    if (opt.dataset.desc) descInput.value = opt.dataset.desc;
+                    if (opt.dataset.price) priceInput.value = opt.dataset.price;
+                }
+            });
+        }
+
+        if (removeBtn) {
+            removeBtn.addEventListener("click", function() {
+                if (tbody.querySelectorAll("tr").length > 1) {
+                    row.remove();
+                } else {
+                    alert("Invoice must have at least one line item.");
+                }
+            });
+        }
+    }
+
+    // Attach to initial row
+    tbody.querySelectorAll("tr").forEach(attachRowListeners);
+
+    // Add new row
+    addBtn.addEventListener("click", function() {
+        const firstRow = tbody.querySelector("tr");
+        const newRow = firstRow.cloneNode(true);
+
+        // Reset cloned fields
+        newRow.querySelector(".service-select").selectedIndex = 0;
+        newRow.querySelector(".item-desc-input").value = "";
+        newRow.querySelector(".item-qty-input").value = "1";
+        newRow.querySelector(".item-price-input").value = "0.00";
+
+        tbody.appendChild(newRow);
+        attachRowListeners(newRow);
+    });
+});
+</script>
+{% endblock %}

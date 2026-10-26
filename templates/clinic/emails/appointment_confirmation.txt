@@ -1,0 +1,34 @@
+===================================================================
+CLINICHUB — APPOINTMENT CONFIRMATION
+===================================================================
+
+Dear {{ patient_name }},
+
+Your appointment has been successfully confirmed. Here are your booking details:
+
+-------------------------------------------------------------------
+QUEUE TOKEN: #{{ token_number }}
+-------------------------------------------------------------------
+
+Doctor:            {{ doctor_display }}
+Department:        {{ department_name }}
+Date:              {{ formatted_date }}
+Time Window:       {{ time_display }}
+{% if reason %}Reason for Visit:  {{ reason }}{% endif %}
+Status:            Confirmed & Queued
+
+-------------------------------------------------------------------
+CLINIC VISIT GUIDELINES
+-------------------------------------------------------------------
+1. Arrival: Please arrive 10-15 minutes prior to your scheduled time slot.
+2. Check-in: Show Token #{{ token_number }} at the reception counter upon arrival.
+3. Documents: Please bring any prior medical records and current medications.
+4. Rescheduling: You can reschedule or cancel your visit through your patient
+   portal at least 2 hours in advance.
+
+Need assistance? Contact our front desk at {{ support_email }}.
+
+Best regards,
+ClinicHub Healthcare Team
+===================================================================
+This is an automated notification. Please do not reply directly to this email.

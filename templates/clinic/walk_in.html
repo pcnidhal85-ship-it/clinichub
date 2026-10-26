@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Walk-In Patient Registration — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .walkin-wrapper {
+        max-width: 860px;
+        margin: 0 auto;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 680px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .form-section {
+        margin-bottom: 24px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .form-section:last-of-type {
+        border-bottom: none;
+    }
+    .form-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .patient-mode-toggle {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 18px;
+        background: #f1f5f9;
+        padding: 6px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+    }
+    .mode-tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        user-select: none;
+    }
+    .mode-tab.active {
+        background: white;
+        color: var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .mode-tab:not(.active) {
+        color: var(--text-secondary);
+    }
+    .mode-tab:hover:not(.active) {
+        color: var(--text-primary);
+    }
+    .field-error {
+        color: #ef4444;
+        font-size: 13px;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .walkin-banner {
+        background: linear-gradient(135deg, #087f8c 0%, #034b52 100%);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        color: white;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="walkin-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <a href="{% url 'today-appointments' %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Reception Schedule</span>
+                </a>
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px 0;">
+                    Walk-In Patient Registration
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+                    Check in walk-in arrivals immediately for today (<strong>{{ today|date:"F j, Y" }}</strong>).
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="{% url 'queue' %}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-users-line"></i>
+                    <span>Live Waiting Queue</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="walkin-banner">
+            <div>
+                <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #86efac; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-bolt"></i> Immediate Queue Entry
+                </div>
+                <div style="font-size: 16px; font-weight: 700;">
+                    Walk-in patients receive a dedicated doctor token and enter the live waiting room instantly.
+                </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600;">
+                <i class="fa-solid fa-calendar-check"></i> Status: Checked In & Waiting
+            </div>
+        </div>
+
+        <div class="card">
+            <form method="post" action="{% url 'walk-in-booking' %}" id="walkInForm" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ form.non_field_errors }}</span>
+                    </div>
+                {% endif %}
+
+                <!-- Section 1: Patient Information -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-hospital-user"></i></span>
+                        <span>1. Patient Identification</span>
+                    </div>
+
+                    <!-- Hidden patient mode input manipulated by tabs -->
+                    <input type="hidden" name="patient_mode" id="id_patient_mode" value="{{ form.patient_mode.value|default:'EXISTING' }}">
+
+                    <div class="patient-mode-toggle">
+                        <div class="mode-tab {% if form.patient_mode.value != 'NEW' %}active{% endif %}" id="tabExisting" onclick="switchMode('EXISTING')">
+                            <i class="fa-solid fa-address-book"></i>
+                            <span>Existing Registered Patient</span>
+                        </div>
+                        <div class="mode-tab {% if form.patient_mode.value == 'NEW' %}active{% endif %}" id="tabNew" onclick="switchMode('NEW')">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>New Walk-In Registration</span>
+                        </div>
+                    </div>
+
+                    <!-- Mode A: Existing Patient Selection -->
+                    <div id="existingPatientBlock" {% if form.patient_mode.value == 'NEW' %}style="display: none;"{% endif %}>
+                        <div class="form-group">
+                            <label for="id_existing_patient" class="form-label">Search / Select Patient *</label>
+                            {{ form.existing_patient }}
+                            {% if form.existing_patient.errors %}
+                                <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.existing_patient.errors.0 }}</div>
+                            {% endif %}
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                <i class="fa-solid fa-circle-info"></i> Choose an existing registered patient from ClinicHub.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mode B: New Walk-In Patient -->
+                    <div id="newPatientBlock" {% if form.patient_mode.value != 'NEW' %}style="display: none;"{% endif %}>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="id_first_name" class="form-label">First Name *</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_last_name" class="form-label">Last Name *</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_phone_number" class="form-label">Contact Phone</label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}
+                                    <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.phone_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_gender" class="form-label">Gender</label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}
+                                    <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.gender.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_blood_group" class="form-label">Blood Group</label>
+                                {{ form.blood_group }}
+                                {% if form.blood_group.errors %}
+                                    <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.blood_group.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Specialty & Attending Doctor -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-user-doctor"></i></span>
+                        <span>2. Department & Attending Doctor</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="id_department" class="form-label">Department *</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.department.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_doctor" class="form-label">Consulting Doctor *</label>
+                            {{ form.doctor }}
+                            {% if form.doctor.errors %}
+                                <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.doctor.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Reason for Consultation -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <span class="icon-box icon-box-sm icon-box-primary"><i class="fa-solid fa-notes-medical"></i></span>
+                        <span>3. Walk-In Reason / Symptoms</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_reason" class="form-label">Chief Complaint (Optional)</label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="field-error"><i class="fa-solid fa-circle-exclamation"></i> {{ form.reason.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px;">
+                    <a href="{% url 'today-appointments' %}" class="btn btn-outline">
+                        <span>Cancel</span>
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-ticket"></i>
+                        <span>Register & Generate Queue Token</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchMode(mode) {
+        document.getElementById('id_patient_mode').value = mode;
+        const tabExisting = document.getElementById('tabExisting');
+        const tabNew = document.getElementById('tabNew');
+        const existingBlock = document.getElementById('existingPatientBlock');
+        const newBlock = document.getElementById('newPatientBlock');
+
+        if (mode === 'EXISTING') {
+            tabExisting.classList.add('active');
+            tabNew.classList.remove('active');
+            existingBlock.style.display = 'block';
+            newBlock.style.display = 'none';
+        } else {
+            tabNew.classList.add('active');
+            tabExisting.classList.remove('active');
+            existingBlock.style.display = 'none';
+            newBlock.style.display = 'block';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const departmentSelect = document.getElementById("id_department");
+        const doctorSelect = document.getElementById("id_doctor");
+
+        if (!departmentSelect || !doctorSelect) return;
+
+        departmentSelect.addEventListener("change", function () {
+            const departmentId = this.value;
+            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+
+            if (!departmentId) {
+                doctorSelect.innerHTML = '<option value="">Select Attending Doctor</option>';
+                return;
+            }
+
+            fetch("{% url 'get-doctors' %}?department_id=" + encodeURIComponent(departmentId))
+                .then(response => response.json())
+                .then(data => {
+                    doctorSelect.innerHTML = '<option value="">Select Attending Doctor</option>';
+                    const doctorList = data.doctors || [];
+
+                    if (doctorList.length === 0) {
+                        doctorSelect.innerHTML = '<option value="">No doctors available in this department</option>';
+                        return;
+                    }
+
+                    doctorList.forEach(function (item) {
+                        const option = document.createElement("option");
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        doctorSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    doctorSelect.innerHTML = '<option value="">Unable to load doctors</option>';
+                    console.error("Error fetching doctors:", error);
+                });
+        });
+    });
+</script>
+{% endblock %}

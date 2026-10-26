@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor's Appointment List — ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow-sm);
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1.5fr auto;
+        gap: 15px;
+        align-items: flex-end;
+    }
+    @media (max-width: 850px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .date-pills {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    .date-pill {
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--bg-alt);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+    }
+    .date-pill:hover, .date-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap;">
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    Appointments Schedule
+                </h1>
+                <span class="user-badge user-badge-doctor">
+                    <i class="fa-solid fa-user-doctor"></i> Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }} ({{ doctor.department.name }})
+                </span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
+                {{ doctor.specialization }} &bull; Search, filter, and review patient appointments for your clinical schedule.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'doctor-dashboard' %}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Doctor Dashboard</span>
+            </a>
+            <a href="{% url 'doctor-availability' %}" class="btn btn-outline btn-sm">
+                <i class="fa-regular fa-clock"></i>
+                <span>My Weekly Schedule</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="filter-bar">
+        <!-- Quick Date Filters -->
+        <div class="date-pills">
+            <a href="?date_filter=today{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="date-pill {% if date_filter == 'today' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-day"></i> Today ({{ today|date:"M j" }})
+            </a>
+            <a href="?date_filter=upcoming{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="date-pill {% if date_filter == 'upcoming' %}active{% endif %}">
+                <i class="fa-regular fa-clock"></i> Upcoming Visits
+            </a>
+            <a href="?date_filter=past{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="date-pill {% if date_filter == 'past' %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Past Consultations
+            </a>
+            <a href="?date_filter=all{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="date-pill {% if date_filter == 'all' %}active{% endif %}">
+                <i class="fa-solid fa-calendar-days"></i> All Dates
+            </a>
+            {% if custom_date %}
+            <span class="date-pill active" style="display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-regular fa-calendar-check"></i>
+                <span>Date: {{ parsed_date|date:"M j, Y" }}</span>
+                <a href="?date_filter=today{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" style="color: white; margin-left: 4px; display: inline-flex; align-items: center;" title="Clear date filter">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </a>
+            </span>
+            {% endif %}
+        </div>
+
+        <form method="get" action="{% url 'doctor-appointments' %}" class="filter-grid" id="filterForm">
+            <input type="hidden" name="date_filter" id="id_date_filter" value="{% if not custom_date %}{{ date_filter }}{% endif %}">
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_search" class="form-label" style="font-size: 13px;">Search Patient / Token</label>
+                <input type="text" name="search" id="id_search" class="form-control" placeholder="Search by name, phone or token #..." value="{{ search_query }}">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_status" class="form-label" style="font-size: 13px;">Filter by Status</label>
+                <select name="status" id="id_status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                    {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_custom_date" class="form-label" style="font-size: 13px;">Or Specific Date</label>
+                <input type="date" name="custom_date" id="id_custom_date" class="form-control" value="{{ custom_date }}">
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="height: 42px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Apply</span>
+                </button>
+                <a href="{% url 'doctor-appointments' %}" class="btn btn-outline" style="height: 42px; display: inline-flex; align-items: center; gap: 6px;" title="Reset all filters">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Appointments Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-clipboard-list" style="color: var(--primary);"></i>
+                <span>Appointments Found ({{ appointments|length }})</span>
+            </h3>
+        </div>
+
+        {% if appointments %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 85px;">Token</th>
+                            <th>Patient Name</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Reason / Symptoms</th>
+                            <th style="text-align: right; width: 240px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in appointments %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--primary); font-size: 16px;">
+                                    #{{ apt.token.formatted_token_number|default:"-" }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <a href="{% url 'doctor-patient-history' apt.patient.id %}" style="font-weight: 700; color: var(--text-primary);">
+                                        {{ apt.patient }}
+                                    </a>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted);">
+                                    {{ apt.patient.gender|default:"" }} &bull; {{ apt.patient.user.phone_number|default:"" }}
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 600;">{{ apt.appointment_date }}</span>
+                            </td>
+                            <td>
+                                {% if apt.time_slot %}
+                                    <span style="font-weight: 600;">{{ apt.time_slot }}</span>
+                                {% else %}
+                                    {{ apt.appointment_time|time:"h:i A" }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if apt.status == 'BOOKED' %}
+                                    <span class="badge badge-booked"><i class="fa-regular fa-clock"></i> Booked</span>
+                                {% elif apt.status == 'CHECKED_IN' or apt.status == 'WAITING' %}
+                                    <span class="badge badge-waiting"><i class="fa-solid fa-users-line"></i> Waiting</span>
+                                {% elif apt.status == 'IN_CONSULTATION' %}
+                                    <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> In Consultation</span>
+                                {% elif apt.status == 'COMPLETED' %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> {{ apt.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="font-size: 13.5px; color: var(--text-secondary);">
+                                    {{ apt.reason|default:"-"|truncatechars:45 }}
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                    {% if apt.status == 'IN_CONSULTATION' %}
+                                        <a href="{% url 'consultation-workspace' apt.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                            <span>Resume</span>
+                                        </a>
+                                    {% elif apt.status == 'WAITING' or apt.status == 'CHECKED_IN' or apt.status == 'BOOKED' %}
+                                        <form method="post" action="{% url 'start-consultation' apt.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="fa-solid fa-play"></i>
+                                                <span>Start</span>
+                                            </button>
+                                        </form>
+                                    {% elif apt.status == 'COMPLETED' %}
+                                        <a href="{% url 'consultation-workspace' apt.id %}" class="btn btn-outline btn-sm">
+                                            <i class="fa-regular fa-file-lines"></i>
+                                            <span>Notes</span>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'doctor-patient-history' apt.patient.id %}" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span>History</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <h3 class="empty-state-title">
+                    No Appointments Matched
+                </h3>
+                <p class="empty-state-text">
+                    We couldn't find any appointments for <strong>Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }} ({{ doctor.department.name }})</strong> matching your selected criteria.
+                </p>
+
+                {% if other_clinic_appointments %}
+                    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-md); padding: 18px 22px; margin: 18px auto 22px auto; text-align: left; max-width: 660px;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <i class="fa-solid fa-circle-info" style="color: #0284c7; font-size: 20px; margin-top: 2px;"></i>
+                            <div style="font-size: 13.5px; color: #0369a1; width: 100%;">
+                                <div style="font-weight: 700; margin-bottom: 5px; color: #075985; font-size: 14.5px;">
+                                    Appointments Found for Other Clinicians on this Date
+                                </div>
+                                <p style="margin: 0 0 10px 0; color: #0c4a6e;">
+                                    You are currently signed in as <strong>Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }} ({{ doctor.department.name }})</strong>.
+                                    There {% if other_clinic_appointments|length > 1 %}are{% else %}is{% endif %} <strong>{{ other_clinic_appointments|length }} appointment(s)</strong> booked for other doctors on this date:
+                                </p>
+                                <ul style="margin: 0; padding-left: 18px; line-height: 1.7; color: #0369a1;">
+                                    {% for o_apt in other_clinic_appointments %}
+                                        <li>
+                                            <strong>Dr. {{ o_apt.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ o_apt.doctor.user.last_name }} ({{ o_apt.doctor.department.name }})</strong> &bull;
+                                            Patient: <strong>{{ o_apt.patient }}</strong> at {{ o_apt.appointment_time|time:"h:i A" }}
+                                            <span class="badge badge-booked" style="font-size: 11px; padding: 2px 7px; margin-left: 5px;">{{ o_apt.get_status_display }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                <div style="margin-top: 12px; font-size: 12.5px; color: #0284c7; font-weight: 500;">
+                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> If you intended to consult or manage one of these visits, log out and sign in using that doctor's credentials.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <a href="{% url 'doctor-appointments' %}" class="btn btn-outline btn-sm">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                    <span>Reset Filters</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const customDateInput = document.getElementById('id_custom_date');
+        const dateFilterHidden = document.getElementById('id_date_filter');
+
+        if (customDateInput && dateFilterHidden) {
+            customDateInput.addEventListener('change', function() {
+                if (this.value) {
+                    dateFilterHidden.value = '';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

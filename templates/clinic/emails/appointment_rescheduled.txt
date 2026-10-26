@@ -1,0 +1,26 @@
+===================================================================
+CLINICHUB — APPOINTMENT RESCHEDULED
+===================================================================
+
+Dear {{ patient_name }},
+
+Your appointment at ClinicHub has been rescheduled. Here are your updated details:
+
+-------------------------------------------------------------------
+UPDATED QUEUE TOKEN: #{{ token_number }}
+-------------------------------------------------------------------
+
+Doctor:            {{ doctor_display }}
+Department:        {{ department_name }}
+New Date:          {{ formatted_date }}
+New Time Window:   {{ time_display }}
+Status:            Rescheduled
+
+Please arrive 10-15 minutes prior to your new scheduled time and present
+Token #{{ token_number }} at the reception counter.
+
+Need assistance? Contact our front desk at {{ support_email }}.
+
+Best regards,
+ClinicHub Healthcare Team
+===================================================================

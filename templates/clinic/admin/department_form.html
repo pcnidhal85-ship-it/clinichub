@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit {{ department.name }}{% else %}Create Department{% endif %} — ClinicHub Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 650px;">
+
+    <!-- Top Navigation -->
+    <div style="margin-bottom: 24px;">
+        <a href="{% url 'admin-departments' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; margin-bottom: 8px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Departments</span>
+        </a>
+        <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+            {% if is_edit %}Edit Department: {{ department.name }}{% else %}Create Clinical Department{% endif %}
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 14.5px; margin: 4px 0 0 0;">
+            {% if is_edit %}Update division naming, clinical scope description, and booking visibility.{% else %}Add a new specialty division to organize physicians and clinic operations.{% endif %}
+        </p>
+    </div>
+
+    <div class="card" style="padding: 30px;">
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" style="margin-bottom: 20px;">
+                    {% for err in form.non_field_errors %}
+                        <div>{{ err }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label">Department Name *</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="field-error">{{ form.name.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description & Clinical Scope</label>
+                {{ form.description }}
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Brief description of medical services, conditions treated, and specialized procedures.</div>
+                {% if form.description.errors %}
+                    <div class="field-error">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    {{ form.is_active }}
+                    <span>Active Department (Visible in patient booking dropdowns)</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 25px;">
+                <a href="{% url 'admin-departments' %}" class="btn btn-outline" style="min-width: 110px;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="font-weight: 700; padding: 10px 24px;">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>{% if is_edit %}Save Changes{% else %}Create Department{% endif %}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

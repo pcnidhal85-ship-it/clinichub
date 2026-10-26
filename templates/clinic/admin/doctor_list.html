@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Directory & Governance — ClinicHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 18px 22px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+    }
+    .status-pills {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+    .status-pill {
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--bg-alt);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+        text-decoration: none;
+    }
+    .status-pill:hover, .status-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .filter-form-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1.2fr auto;
+        gap: 12px;
+        align-items: center;
+    }
+    @media (max-width: 768px) {
+        .filter-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <a href="{% url 'admin-dashboard' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left"></i> Command Center
+                </a>
+                <span style="color: var(--border-color);">&bull;</span>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Physician Governance</span>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                Doctor Roster & Credentials
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 4px 0 0 0;">
+                Manage medical licenses, specialties, clinical department assignments, and doctor availability.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'admin-doctor-create' %}" class="btn btn-primary" style="font-weight: 700; box-shadow: var(--shadow-sm);">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Onboard New Doctor</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Filter Bar -->
+    <div class="filter-bar">
+        <div class="status-pills">
+            <a href="?status=all{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="status-pill {% if status_filter == 'all' %}active{% endif %}">
+                All Doctors ({{ total_docs }})
+            </a>
+            <a href="?status=active{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="status-pill {% if status_filter == 'active' %}active{% endif %}">
+                <i class="fa-solid fa-circle-check" style="font-size: 11px;"></i> Active Duty ({{ active_docs }})
+            </a>
+            <a href="?status=inactive{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="status-pill {% if status_filter == 'inactive' %}active{% endif %}">
+                <i class="fa-solid fa-ban" style="font-size: 11px;"></i> Inactive ({{ inactive_docs }})
+            </a>
+        </div>
+
+        <form method="get" action="{% url 'admin-doctors' %}" class="filter-form-grid">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+
+            <div>
+                <input type="text" name="q" class="form-control" placeholder="Search by name, email, license # or specialty..." value="{{ query }}">
+            </div>
+
+            <div>
+                <select name="department" class="form-select">
+                    <option value="">All Clinical Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-primary btn-sm" style="height: 42px; padding: 0 16px;">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Apply</span>
+                </button>
+                {% if query or selected_dept or status_filter != 'all' %}
+                    <a href="{% url 'admin-doctors' %}" class="btn btn-outline btn-sm" style="height: 42px; padding: 0 12px; display: flex; align-items: center;" title="Reset filters">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Doctors Table Card -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                <span>Registered Physicians ({{ doctors|length }})</span>
+            </h3>
+        </div>
+
+        {% if doctors %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Doctor & Name</th>
+                            <th>Department</th>
+                            <th>Specialization</th>
+                            <th>License Number</th>
+                            <th>Contact Info</th>
+                            <th>Status</th>
+                            <th style="width: 170px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in doctors %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0;">
+                                        {{ doc.user.first_name|cut:"Dr. "|cut:"Dr."|slice:":1" }}{{ doc.user.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary);">
+                                            Dr. {{ doc.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doc.user.last_name }}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                            Username: <code>{{ doc.user.username }}</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge" style="background: #f1f5f9; color: var(--text-secondary); font-weight: 700;">
+                                    {{ doc.department.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ doc.specialization }}</div>
+                                <div style="font-size: 11.5px; color: var(--text-muted);">{{ doc.user.get_doctor_role_display }}</div>
+                            </td>
+                            <td>
+                                <code style="font-weight: 700; font-size: 13px; color: var(--secondary);">{{ doc.license_number }}</code>
+                            </td>
+                            <td>
+                                <div style="font-size: 13px; color: var(--text-primary);">{{ doc.user.email }}</div>
+                                {% if doc.user.phone_number %}
+                                    <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                                        <i class="fa-solid fa-phone" style="font-size: 10px;"></i> {{ doc.user.phone_number }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if doc.is_active and doc.user.is_active %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                                    <a href="{% url 'admin-doctor-edit' doc.id %}" class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px;" title="Edit Profile">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Edit</span>
+                                    </a>
+
+                                    <form method="post" action="{% url 'admin-doctor-toggle' doc.id %}" style="display: inline; margin: 0;">
+                                        {% csrf_token %}
+                                        {% if doc.is_active and doc.user.is_active %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #dc2626; border-color: #fca5a5;" title="Deactivate Doctor" onclick="return confirm('Deactivate Dr. {{ doc.user.last_name }}? They will not appear in booking availability.');">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #059669; border-color: #a7f3d0;" title="Activate Doctor">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fa-solid fa-user-doctor" style="font-size: 36px; opacity: 0.3; margin-bottom: 8px; display: block;"></i>
+                <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">No Doctors Found</div>
+                <div style="font-size: 13.5px; margin-top: 4px;">No physician records matched your current filters.</div>
+                <div style="margin-top: 14px;">
+                    <a href="{% url 'admin-doctor-create' %}" class="btn btn-primary btn-sm">Onboard New Doctor</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

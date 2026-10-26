@@ -1,0 +1,19 @@
+===================================================================
+CLINICHUB — APPOINTMENT CANCELLED
+===================================================================
+
+Dear {{ patient_name }},
+
+This email confirms that your appointment scheduled for {{ formatted_date }}
+with {{ doctor_display }} has been cancelled.
+
+Cancelled Details:
+Doctor:       {{ doctor_display }} ({{ department_name }})
+Slot:         {{ formatted_date }} at {{ time_display }}
+{% if reason %}Cancellation Note: {{ reason }}{% endif %}
+
+If you need to book a new appointment, please visit your ClinicHub patient portal.
+
+Best regards,
+ClinicHub Healthcare Team
+===================================================================

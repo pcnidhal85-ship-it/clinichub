@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Clinic Staff Roster — ClinicHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-bar {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 18px 22px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+    }
+    .role-pills {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+    .role-pill {
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--bg-alt);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+        text-decoration: none;
+    }
+    .role-pill:hover, .role-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .filter-form-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1.2fr 1fr auto;
+        gap: 12px;
+        align-items: center;
+    }
+    @media (max-width: 820px) {
+        .filter-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <a href="{% url 'admin-dashboard' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left"></i> Command Center
+                </a>
+                <span style="color: var(--border-color);">&bull;</span>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Human Resources</span>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                Clinic Staff Roster
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 4px 0 0 0;">
+                Manage front-desk receptionists, nurses, lab technicians, and clinic support personnel.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'admin-staff-create' %}" class="btn btn-primary" style="font-weight: 700; box-shadow: var(--shadow-sm);">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Add Staff Member</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="role-pills">
+            <a href="?role=all{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="role-pill {% if selected_role == 'all' %}active{% endif %}">
+                All Roles ({{ total_staff }})
+            </a>
+            {% for code, label in role_choices %}
+                <a href="?role={{ code }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="role-pill {% if selected_role == code %}active{% endif %}">
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+
+        <form method="get" action="{% url 'admin-staff' %}" class="filter-form-grid">
+            <input type="hidden" name="role" value="{{ selected_role }}">
+
+            <div>
+                <input type="text" name="q" class="form-control" placeholder="Search by name, email, designation..." value="{{ query }}">
+            </div>
+
+            <div>
+                <select name="department" class="form-select">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <select name="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-primary btn-sm" style="height: 42px; padding: 0 16px;">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Apply</span>
+                </button>
+                {% if query or selected_dept or selected_role != 'all' or status_filter != 'all' %}
+                    <a href="{% url 'admin-staff' %}" class="btn btn-outline btn-sm" style="height: 42px; padding: 0 12px; display: flex; align-items: center;" title="Reset filters">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Staff Table Card -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-users-gear" style="color: var(--primary);"></i>
+                <span>Staff Members ({{ staff_members|length }})</span>
+            </h3>
+        </div>
+
+        {% if staff_members %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Staff Member</th>
+                            <th>Role & Designation</th>
+                            <th>Department</th>
+                            <th>Contact Email / Phone</th>
+                            <th>Status</th>
+                            <th style="width: 170px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in staff_members %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0;">
+                                        {{ st.user.first_name|slice:":1" }}{{ st.user.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary);">
+                                            {{ st.user.first_name }} {{ st.user.last_name }}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">
+                                            Username: <code>{{ st.user.username }}</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary);">
+                                    {{ st.designation }}
+                                </div>
+                                <span class="badge" style="background: #e0f2fe; color: #0284c7; font-size: 11px; margin-top: 2px;">
+                                    {{ st.user.get_staff_role_display|default:"Staff" }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if st.department %}
+                                    <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">{{ st.department.name }}</span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 12.5px;">General Operations</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-size: 13px; color: var(--text-primary);">{{ st.user.email }}</div>
+                                {% if st.user.phone_number %}
+                                    <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                                        <i class="fa-solid fa-phone" style="font-size: 10px;"></i> {{ st.user.phone_number }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if st.is_active and st.user.is_active %}
+                                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                                    <a href="{% url 'admin-staff-edit' st.id %}" class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 12px;" title="Edit Staff Profile">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Edit</span>
+                                    </a>
+
+                                    <form method="post" action="{% url 'admin-staff-toggle' st.id %}" style="display: inline; margin: 0;">
+                                        {% csrf_token %}
+                                        {% if st.is_active and st.user.is_active %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #dc2626; border-color: #fca5a5;" title="Deactivate Account" onclick="return confirm('Deactivate {{ st.user.first_name }} {{ st.user.last_name }}? They will be unable to log in.');">
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 12px; color: #059669; border-color: #a7f3d0;" title="Activate Account">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fa-solid fa-users-gear" style="font-size: 36px; opacity: 0.3; margin-bottom: 8px; display: block;"></i>
+                <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">No Staff Members Found</div>
+                <div style="font-size: 13.5px; margin-top: 4px;">No staff records matched your current filters.</div>
+                <div style="margin-top: 14px;">
+                    <a href="{% url 'admin-staff-create' %}" class="btn btn-primary btn-sm">Add Staff Member</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

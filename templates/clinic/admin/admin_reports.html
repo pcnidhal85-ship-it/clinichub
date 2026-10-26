@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Clinic Analytics & Performance Reports — ClinicHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeframe-bar {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .time-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .time-pill {
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--bg-alt);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+        text-decoration: none;
+    }
+    .time-pill:hover, .time-pill.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .metric-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    .metric-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+    }
+    .metric-lbl {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .metric-val {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.1;
+    }
+    .metric-sub {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    .progress-bar-bg {
+        width: 100%;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        margin-top: 6px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: var(--radius-full);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <a href="{% url 'admin-dashboard' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none;">
+                    <i class="fa-solid fa-arrow-left"></i> Command Center
+                </a>
+                <span style="color: var(--border-color);">&bull;</span>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Executive Intelligence</span>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                Clinic Performance & Analytics Reports
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14.5px; margin: 4px 0 0 0;">
+                Evaluate clinical throughput, consultation completion rates, physician workload, and department volume.
+            </p>
+        </div>
+
+        <div>
+            <button onclick="window.print()" class="btn btn-outline btn-sm" style="font-weight: 600;">
+                <i class="fa-solid fa-print"></i> Print / Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Timeframe Filter -->
+    <div class="timeframe-bar">
+        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-regular fa-calendar-days" style="color: var(--primary);"></i>
+            <span>Reporting Interval:</span>
+        </div>
+
+        <div class="time-pills">
+            <a href="?timeframe=7d" class="time-pill {% if timeframe == '7d' %}active{% endif %}">
+                Last 7 Days
+            </a>
+            <a href="?timeframe=30d" class="time-pill {% if timeframe == '30d' %}active{% endif %}">
+                Last 30 Days
+            </a>
+            <a href="?timeframe=month" class="time-pill {% if timeframe == 'month' %}active{% endif %}">
+                This Month
+            </a>
+            <a href="?timeframe=all" class="time-pill {% if timeframe == 'all' %}active{% endif %}">
+                All-Time Records
+            </a>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">
+            Showing: <strong>{{ timeframe_label }}</strong>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="metric-card-grid">
+        <div class="metric-card">
+            <div class="metric-lbl">Total Appointments</div>
+            <div class="metric-val">{{ total_volume }}</div>
+            <div class="metric-sub">Bookings in selected interval</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-lbl">Completed Consultations</div>
+            <div class="metric-val" style="color: #15803d;">{{ completed_count }}</div>
+            <div class="metric-sub">Finished patient visits</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-lbl">Overall Completion Rate</div>
+            <div class="metric-val" style="color: var(--primary);">{{ completion_rate }}%</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {{ completion_rate }}%;"></div>
+            </div>
+            <div class="metric-sub">{{ completed_count }} completed of {{ total_volume }} total</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-lbl">Cancellations & Drops</div>
+            <div class="metric-val" style="color: #b91c1c;">{{ cancelled_count }}</div>
+            <div class="metric-sub">{{ cancellation_rate }}% cancellation rate</div>
+        </div>
+    </div>
+
+    <!-- Financial Revenue Cards Grid -->
+    <div style="margin-bottom: 24px;">
+        <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-coins" style="color: #d97706;"></i> Revenue & Settlement Summary</span>
+            <a href="{% url 'billing-invoice-list' %}" style="text-transform: none; font-weight: 600; color: var(--primary); text-decoration: none; font-size: 12px;">
+                Manage Invoices &rarr;
+            </a>
+        </div>
+        <div class="metric-card-grid" style="margin-bottom: 0;">
+            <div class="metric-card" style="border-left: 4px solid #0284c7;">
+                <div class="metric-lbl">Total Billed Tariffs</div>
+                <div class="metric-val" style="color: #0284c7;">${{ revenue_billed|floatformat:2 }}</div>
+                <div class="metric-sub">Gross invoiced amount in timeframe</div>
+            </div>
+
+            <div class="metric-card" style="border-left: 4px solid #16a34a;">
+                <div class="metric-lbl">Revenue Collected</div>
+                <div class="metric-val" style="color: #16a34a;">${{ revenue_collected|floatformat:2 }}</div>
+                <div class="metric-sub">Settled patient payments</div>
+            </div>
+
+            <div class="metric-card" style="border-left: 4px solid #d97706;">
+                <div class="metric-lbl">Outstanding Dues</div>
+                <div class="metric-val" style="color: #d97706;">${{ revenue_due|floatformat:2 }}</div>
+                <div class="metric-sub">Pending patient balances</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2-Column Analytics Breakdown -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start;">
+
+        <!-- Physician Productivity Table -->
+        <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+                    <span>Doctor Consultation Throughput</span>
+                </h3>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Physician & Specialty</th>
+                            <th>Total Visits</th>
+                            <th>Completed</th>
+                            <th>Cancelled</th>
+                            <th style="width: 140px;">Completion %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dp in doctor_performance %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">
+                                    Dr. {{ dp.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ dp.doctor.user.last_name }}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">
+                                    {{ dp.doctor.department.name }} &bull; {{ dp.doctor.specialization }}
+                                </div>
+                            </td>
+                            <td><strong style="font-size: 14px;">{{ dp.total }}</strong></td>
+                            <td><span style="color: #15803d; font-weight: 700;">{{ dp.completed }}</span></td>
+                            <td><span style="color: #b91c1c;">{{ dp.cancelled }}</span></td>
+                            <td>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 2px;">
+                                    <span>{{ dp.completion_rate }}%</span>
+                                </div>
+                                <div class="progress-bar-bg" style="margin-top: 0;">
+                                    <div class="progress-bar-fill" style="width: {{ dp.completion_rate }}%; background: {% if dp.completion_rate >= 75 %}#15803d{% elif dp.completion_rate >= 50 %}#0284c7{% else %}#b45309{% endif %};"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">No physician records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Department Volume Distribution -->
+        <div class="card">
+            <div class="card-header">
+                <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-hospital" style="color: var(--primary);"></i>
+                    <span>Department Volume Share</span>
+                </h3>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Volume</th>
+                            <th>Share %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ds in department_stats %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-primary);">{{ ds.department.name }}</div>
+                                <div style="font-size: 11.5px; color: var(--text-muted);">{{ ds.completed }} completed</div>
+                            </td>
+                            <td>
+                                <strong style="font-size: 14px;">{{ ds.total }}</strong>
+                            </td>
+                            <td>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 2px;">
+                                    <span>{{ ds.share_percentage }}%</span>
+                                </div>
+                                <div class="progress-bar-bg" style="margin-top: 0;">
+                                    <div class="progress-bar-fill" style="width: {{ ds.share_percentage }}%; background: #087f8c;"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 25px;">No department records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

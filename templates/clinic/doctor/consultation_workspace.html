@@ -1,0 +1,720 @@
+{% extends "base.html" %}
+
+{% block title %}Consultation Workspace — {{ patient }} | ClinicHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .workspace-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 25px;
+        align-items: start;
+    }
+    @media (max-width: 1024px) {
+        .workspace-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .patient-header-banner {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        margin-bottom: 22px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .vitals-pill-grid {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .vitals-pill {
+        background: var(--bg-alt);
+        padding: 6px 14px;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--border-color);
+    }
+    .allergy-alert {
+        background: #fef2f2;
+        border: 1.5px solid #f87171;
+        color: #991b1b;
+        border-radius: var(--radius-md);
+        padding: 12px 18px;
+        margin-top: 14px;
+        font-size: 13.5px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .med-row {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        margin-bottom: 12px;
+        transition: all 0.2s ease;
+    }
+    .med-row:hover {
+        border-color: #cbd5e1;
+        box-shadow: var(--shadow-sm);
+    }
+    .med-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1.2fr 1fr 1.2fr 40px;
+        gap: 10px;
+        align-items: center;
+    }
+    @media (max-width: 768px) {
+        .med-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .lab-chips-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .lab-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--bg-alt);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 13px;
+        user-select: none;
+        transition: all 0.15s ease;
+    }
+    .lab-chip:hover {
+        background: #f1f5f9;
+        border-color: var(--primary);
+    }
+    .lab-chip input[type="checkbox"]:checked + span {
+        font-weight: 700;
+        color: var(--primary);
+    }
+    .history-timeline-item {
+        border-left: 2px solid var(--primary);
+        padding-left: 18px;
+        margin-left: 10px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .history-timeline-item::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background: var(--primary);
+        border-radius: 50%;
+        position: absolute;
+        left: -6px;
+        top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1300px;">
+    <!-- Top Breadcrumb -->
+    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <a href="{% url 'doctor-dashboard' %}" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Back to Doctor Dashboard</span>
+        </a>
+        <div style="font-size: 13px; color: var(--text-muted);">
+            <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i>
+            Attending: <strong>Dr. {{ doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ doctor.user.last_name }}</strong> ({{ doctor.department.name }})
+        </div>
+    </div>
+
+    <!-- Patient Header Banner -->
+    <div class="patient-header-banner">
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
+                <h1 style="font-size: 24px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    {{ patient }}
+                </h1>
+                {% if appointment.token %}
+                    <span class="badge badge-booked" style="font-size: 12px;">
+                        <i class="fa-solid fa-ticket"></i> Token #{{ appointment.token.formatted_token_number }}
+                    </span>
+                {% endif %}
+                {% if appointment.status == 'COMPLETED' %}
+                    <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Completed</span>
+                {% elif appointment.status == 'IN_CONSULTATION' %}
+                    <span class="badge badge-in-consultation"><i class="fa-solid fa-stethoscope"></i> In Consultation</span>
+                {% else %}
+                    <span class="badge badge-waiting"><i class="fa-solid fa-clock"></i> {{ appointment.get_status_display }}</span>
+                {% endif %}
+            </div>
+
+            <div class="vitals-pill-grid">
+                <span class="vitals-pill">
+                    <i class="fa-regular fa-calendar" style="color: var(--primary);"></i>
+                    <strong>DOB:</strong> {{ patient.date_of_birth|default:"Not recorded" }}
+                </span>
+                <span class="vitals-pill">
+                    <i class="fa-solid fa-venus-mars" style="color: var(--primary);"></i>
+                    <strong>Gender:</strong> {{ patient.get_gender_display|default:"-" }}
+                </span>
+                <span class="vitals-pill">
+                    <i class="fa-solid fa-droplet" style="color: #ef4444;"></i>
+                    <strong>Blood Group:</strong> {{ patient.blood_group|default:"-" }}
+                </span>
+                {% if patient.user.phone_number %}
+                <span class="vitals-pill">
+                    <i class="fa-solid fa-phone" style="color: var(--primary);"></i>
+                    <strong>Phone:</strong> {{ patient.user.phone_number }}
+                </span>
+                {% endif %}
+                {% if latest_vital %}
+                <span class="vitals-pill" style="background: #ecfdf5; border-color: #a7f3d0; color: #065f46;">
+                    <i class="fa-solid fa-heart-pulse" style="color: #059669;"></i>
+                    <strong>Latest BP:</strong> {{ latest_vital.blood_pressure_display }} | Pulse: {{ latest_vital.pulse_rate|default:"-" }} bpm
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Allergy Alert Banner -->
+            {% if medical_history.allergies %}
+            <div class="allergy-alert">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px;"></i>
+                    <span><strong>CRITICAL ALLERGIES:</strong> {{ medical_history.allergies }}</span>
+                </div>
+                <a href="{% url 'edit-patient-medical-history' patient.id %}?next={{ request.path }}" style="font-size: 12px; color: #991b1b; text-decoration: underline;">
+                    Edit
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'record-patient-vitals' patient.id %}?next={{ request.path }}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <span>Log Vitals</span>
+            </a>
+            <a href="{% url 'edit-patient-medical-history' patient.id %}?next={{ request.path }}" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-notes-medical"></i>
+                <span>Allergies & History</span>
+            </a>
+            {% if prescription %}
+            <a href="{% url 'prescription-print' prescription.id %}" target="_blank" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-print"></i>
+                <span>Print Rx</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="workspace-grid">
+        <!-- LEFT: Clinical Consultation Workspace -->
+        <div>
+            <!-- Chief Complaint Card -->
+            <div class="card" style="margin-bottom: 22px;">
+                <div class="card-header">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-comment-medical" style="color: var(--primary);"></i>
+                        <span>Chief Complaint & Reason for Visit</span>
+                    </h3>
+                    <span style="font-size: 13px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Slot: {{ appointment.appointment_time|time:"h:i A" }}</span>
+                    </span>
+                </div>
+                <p style="font-size: 14.5px; color: var(--text-primary); line-height: 1.6; margin: 0;">
+                    {% if appointment.reason %}
+                        {{ appointment.reason }}
+                    {% else %}
+                        <em style="color: var(--text-muted);">No specific visit symptoms recorded by patient at booking time.</em>
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Unified Clinical Record & Prescription Form -->
+            <form method="post" action="{% url 'complete-consultation' appointment.id %}" id="consultationForm">
+                {% csrf_token %}
+
+                <!-- Section 1: Clinical Examination & Diagnosis -->
+                <div class="card" style="margin-bottom: 22px;">
+                    <div class="card-header">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-stethoscope" style="color: var(--primary);"></i>
+                            <span>Clinical Examination & Diagnosis</span>
+                        </h3>
+                        {% if medical_record %}
+                            <span class="badge badge-completed"><i class="fa-solid fa-circle-check"></i> Clinical Record Exists</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id_record-chief_complaints" class="form-label">
+                            Patient Chief Complaints & Symptoms *
+                        </label>
+                        {{ record_form.chief_complaints }}
+                        {% if record_form.chief_complaints.errors %}
+                            <div class="field-error">{{ record_form.chief_complaints.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="id_record-clinical_findings" class="form-label">
+                            Clinical Examination Findings & Physical Observations
+                        </label>
+                        {{ record_form.clinical_findings }}
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="id_record-diagnosis" class="form-label">
+                            Provisional / Confirmed Diagnosis *
+                        </label>
+                        {{ record_form.diagnosis }}
+                        {% if record_form.diagnosis.errors %}
+                            <div class="field-error">{{ record_form.diagnosis.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="id_record-treatment_plan" class="form-label">
+                            Treatment Strategy & Clinical Recommendations
+                        </label>
+                        {{ record_form.treatment_plan }}
+                    </div>
+                </div>
+
+                <!-- Section 2: Prescription Builder (Medications) -->
+                <div class="card" style="margin-bottom: 22px;">
+                    <div class="card-header">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-prescription" style="color: var(--primary); font-size: 18px;"></i>
+                            <span>℞ Prescription & Medications</span>
+                        </h3>
+                        <button type="button" class="btn btn-outline btn-sm" id="addMedRowBtn">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add Medicine</span>
+                        </button>
+                    </div>
+
+                    <div id="medicationContainer">
+                        {% if prescription and prescription.items.exists %}
+                            {% for item in prescription.items.all %}
+                            <div class="med-row">
+                                <div class="med-grid">
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Medicine Name *</label>
+                                        <input type="text" name="medicine_name[]" class="form-control" value="{{ item.medicine_name }}" placeholder="e.g. Tab. Paracetamol 650mg" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Dosage</label>
+                                        <input type="text" name="dosage[]" class="form-control" value="{{ item.dosage }}" placeholder="e.g. 650mg / 1 tab">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Frequency</label>
+                                        <input type="text" name="frequency[]" class="form-control" value="{{ item.frequency }}" placeholder="e.g. 1-0-1 or TID">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Duration</label>
+                                        <input type="text" name="duration[]" class="form-control" value="{{ item.duration }}" placeholder="e.g. 5 days">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Timing</label>
+                                        <input type="text" name="timing[]" class="form-control" value="{{ item.timing }}" placeholder="e.g. After meals">
+                                    </div>
+                                    <div style="text-align: center; padding-top: 18px;">
+                                        <button type="button" class="btn-delete-row" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;" title="Remove Medicine">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    <input type="text" name="instructions[]" class="form-control" value="{{ item.instructions }}" placeholder="Special instructions (e.g. Take with warm water, avoid dairy)" style="font-size: 12.5px;">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Default 1 empty row -->
+                            <div class="med-row">
+                                <div class="med-grid">
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Medicine Name *</label>
+                                        <input type="text" name="medicine_name[]" class="form-control" placeholder="e.g. Tab. Paracetamol 650mg">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Dosage</label>
+                                        <input type="text" name="dosage[]" class="form-control" placeholder="e.g. 650mg / 1 tab">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Frequency</label>
+                                        <input type="text" name="frequency[]" class="form-control" placeholder="e.g. 1-0-1 or TID">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Duration</label>
+                                        <input type="text" name="duration[]" class="form-control" placeholder="e.g. 5 days">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Timing</label>
+                                        <input type="text" name="timing[]" class="form-control" placeholder="e.g. After meals">
+                                    </div>
+                                    <div style="text-align: center; padding-top: 18px;">
+                                        <button type="button" class="btn-delete-row" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;" title="Remove Medicine">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    <input type="text" name="instructions[]" class="form-control" placeholder="Special instructions (e.g. Take with warm water, avoid dairy)" style="font-size: 12.5px;">
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div style="margin-top: 18px;">
+                        <label for="id_rx-general_advice" class="form-label">
+                            General Dietary, Lifestyle & Physical Advice
+                        </label>
+                        {{ prescription_form.general_advice }}
+                    </div>
+
+                    <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="id_rx-follow_up_date" class="form-label">
+                                Recommended Follow-Up Visit Date
+                            </label>
+                            {{ prescription_form.follow_up_date }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Diagnostic Lab Orders -->
+                <div class="card" style="margin-bottom: 25px;">
+                    <div class="card-header">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-flask-vial" style="color: var(--primary);"></i>
+                            <span>Laboratory & Diagnostic Test Orders</span>
+                        </h3>
+                    </div>
+
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Select quick preset tests or specify custom investigations for clinical workup:
+                    </p>
+
+                    <div class="lab-chips-grid">
+                        {% for test in common_lab_tests %}
+                        <label class="lab-chip">
+                            <input type="checkbox" name="quick_lab_tests[]" value="{{ test }}">
+                            <span>{{ test }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <div style="margin-top: 18px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+                        <label class="form-label" style="font-size: 13px;">Add Custom Lab Investigation:</label>
+                        <div style="display: grid; grid-template-columns: 1.5fr 2fr; gap: 10px;">
+                            <input type="text" name="custom_lab_name[]" class="form-control" placeholder="Test Name (e.g. Serum Ferritin)">
+                            <input type="text" name="custom_lab_indication[]" class="form-control" placeholder="Indication (e.g. Rule out iron deficiency)">
+                        </div>
+                    </div>
+
+                    {% if lab_orders %}
+                    <div style="margin-top: 18px; background: var(--bg-alt); padding: 12px 16px; border-radius: var(--radius-sm);">
+                        <strong style="font-size: 13px; color: var(--text-primary); display: block; margin-bottom: 6px;">
+                            Previously Ordered for This Consultation:
+                        </strong>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary);">
+                            {% for ord in lab_orders %}
+                            <li>{{ ord.test_name }} — <span class="badge badge-booked" style="font-size: 11px;">{{ ord.get_status_display }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Section 4: Quick Vitals Log (Optional during consultation) -->
+                <div class="card" style="margin-bottom: 25px;">
+                    <div class="card-header">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i>
+                            <span>Quick Vitals Check (Optional)</span>
+                        </h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">Systolic (mmHg)</label>
+                            <input type="number" name="vital-systolic_bp" class="form-control" placeholder="120" min="40" max="250">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">Diastolic (mmHg)</label>
+                            <input type="number" name="vital-diastolic_bp" class="form-control" placeholder="80" min="30" max="180">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">Pulse (bpm)</label>
+                            <input type="number" name="vital-pulse_rate" class="form-control" placeholder="72" min="30" max="200">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">Temp (°F)</label>
+                            <input type="number" step="0.1" name="vital-temperature" class="form-control" placeholder="98.6" min="90" max="110">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">Weight (kg)</label>
+                            <input type="number" step="0.1" name="vital-weight_kg" class="form-control" placeholder="70" min="1" max="300">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 12px;">SpO2 (%)</label>
+                            <input type="number" name="vital-spo2" class="form-control" placeholder="98" min="50" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 15px;">
+                    <button type="submit" name="action" value="save_draft" class="btn btn-outline btn-lg">
+                        <i class="fa-regular fa-bookmark"></i>
+                        <span>Save Consultation Draft</span>
+                    </button>
+
+                    <button type="submit" name="action" value="complete" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 14px rgba(8, 127, 140, 0.35);">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Complete Consultation & Issue Rx</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT: Patient Background & Prior Records -->
+        <div>
+            <!-- Enduring Medical History Card -->
+            <div class="card" style="margin-bottom: 22px;">
+                <div class="card-header">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-notes-medical" style="color: var(--primary);"></i>
+                        <span>Enduring Medical File</span>
+                    </h3>
+                    <a href="{% url 'edit-patient-medical-history' patient.id %}?next={{ request.path }}" style="font-size: 12.5px; color: var(--primary); font-weight: 600;">
+                        Edit File
+                    </a>
+                </div>
+
+                <div style="font-size: 13.5px; display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <strong style="color: var(--text-primary); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Allergies:</strong>
+                        {% if medical_history.allergies %}
+                            <span style="color: #991b1b; font-weight: 700;">{{ medical_history.allergies }}</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">No known drug or food allergies</span>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--text-primary); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Chronic Illnesses:</strong>
+                        {% if medical_history.chronic_conditions %}
+                            <span style="color: var(--text-primary);">{{ medical_history.chronic_conditions }}</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">None documented</span>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--text-primary); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Current Regular Medications:</strong>
+                        {% if medical_history.current_medications %}
+                            <span style="color: var(--text-primary);">{{ medical_history.current_medications }}</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">None recorded</span>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--text-primary); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Surgical & Family History:</strong>
+                        <span style="color: var(--text-secondary);">
+                            {{ medical_history.past_surgeries|default:"No prior surgeries reported." }}
+                            {% if medical_history.family_medical_history %}
+                                (Family: {{ medical_history.family_medical_history }})
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vitals Snapshot Card -->
+            <div class="card" style="margin-bottom: 22px;">
+                <div class="card-header">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-heart-pulse" style="color: #ef4444;"></i>
+                        <span>Recent Vitals Log</span>
+                    </h3>
+                    <a href="{% url 'record-patient-vitals' patient.id %}?next={{ request.path }}" style="font-size: 12.5px; color: var(--primary); font-weight: 600;">
+                        + Log Vitals
+                    </a>
+                </div>
+
+                {% if vitals_history %}
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        {% for v in vitals_history|slice:":3" %}
+                        <div style="background: var(--bg-alt); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <strong style="color: var(--text-primary);">{{ v.blood_pressure_display }}</strong>
+                                <span style="font-size: 11.5px; color: var(--text-muted);">{{ v.recorded_at|date:"M j, H:i" }}</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap;">
+                                {% if v.pulse_rate %}<span>Pulse: <strong>{{ v.pulse_rate }}</strong> bpm</span>{% endif %}
+                                {% if v.temperature %}<span>Temp: <strong>{{ v.temperature }}</strong>°F</span>{% endif %}
+                                {% if v.weight_kg %}<span>Weight: <strong>{{ v.weight_kg }}</strong> kg</span>{% endif %}
+                                {% if v.bmi %}<span>BMI: <strong>{{ v.bmi }}</strong></span>{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 13px;">
+                        No vital signs recorded yet for this patient.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Prior Consultations History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i>
+                        <span>Prior Consultations ({{ past_appointments|length }})</span>
+                    </h3>
+                </div>
+
+                {% if past_appointments %}
+                    <div style="max-height: 480px; overflow-y: auto; padding-right: 5px;">
+                        {% for past in past_appointments %}
+                            <div class="history-timeline-item">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <strong style="font-size: 13.5px; color: var(--text-primary);">
+                                        {{ past.appointment_date|date:"M j, Y" }}
+                                    </strong>
+                                    <span class="badge badge-completed" style="font-size: 10.5px;">Completed</span>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">
+                                    Dr. {{ past.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ past.doctor.user.last_name }} ({{ past.doctor.department.name }})
+                                </div>
+                                {% if past.medical_record %}
+                                    <div style="background: var(--bg-alt); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12.5px; border: 1px solid var(--border-color); margin-bottom: 6px;">
+                                        <strong>Diagnosis:</strong> {{ past.medical_record.diagnosis|truncatechars:100 }}
+                                    </div>
+                                {% elif past.notes %}
+                                    <div style="background: var(--bg-alt); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12.5px; border: 1px solid var(--border-color); margin-bottom: 6px;">
+                                        {{ past.notes|truncatechars:100 }}
+                                    </div>
+                                {% endif %}
+                                {% if past.prescription %}
+                                    <a href="{% url 'prescription-print' past.prescription.id %}" target="_blank" style="font-size: 11.5px; color: var(--primary); font-weight: 600;">
+                                        <i class="fa-solid fa-print"></i> View Rx #{{ past.prescription.id|stringformat:"04d" }}
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 28px 15px;">
+                        <div class="empty-state-icon" style="width: 48px; height: 48px; font-size: 20px;">
+                            <i class="fa-solid fa-clipboard-user"></i>
+                        </div>
+                        <h4 class="empty-state-title" style="font-size: 15px;">First Visit</h4>
+                        <p class="empty-state-text" style="font-size: 13px; margin: 0;">
+                            No prior completed visits for this patient.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Emergency Contact -->
+            {% if patient.emergency_contact_name or patient.emergency_contact_phone %}
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3 style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                        <i class="fa-solid fa-phone-volume" style="color: #ef4444;"></i>
+                        <span>Emergency Contact</span>
+                    </h3>
+                </div>
+                <div style="font-size: 13px;">
+                    <div><strong>Contact:</strong> {{ patient.emergency_contact_name|default:"Not specified" }}</div>
+                    <div style="margin-top: 4px;"><strong>Phone:</strong> {{ patient.emergency_contact_phone|default:"Not specified" }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("medicationContainer");
+        const addBtn = document.getElementById("addMedRowBtn");
+
+        addBtn.addEventListener("click", function() {
+            const row = document.createElement("div");
+            row.className = "med-row";
+            row.innerHTML = `
+                <div class="med-grid">
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Medicine Name *</label>
+                        <input type="text" name="medicine_name[]" class="form-control" placeholder="e.g. Tab. Amoxicillin 500mg" required>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Dosage</label>
+                        <input type="text" name="dosage[]" class="form-control" placeholder="e.g. 500mg / 1 tab">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Frequency</label>
+                        <input type="text" name="frequency[]" class="form-control" placeholder="e.g. 1-0-1 or TID">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Duration</label>
+                        <input type="text" name="duration[]" class="form-control" placeholder="e.g. 5 days">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; margin-bottom: 2px;">Timing</label>
+                        <input type="text" name="timing[]" class="form-control" placeholder="e.g. After meals">
+                    </div>
+                    <div style="text-align: center; padding-top: 18px;">
+                        <button type="button" class="btn-delete-row" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;" title="Remove Medicine">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+                <div style="margin-top: 8px;">
+                    <input type="text" name="instructions[]" class="form-control" placeholder="Special instructions (e.g. Take with warm water, avoid dairy)" style="font-size: 12.5px;">
+                </div>
+            `;
+            container.appendChild(row);
+            attachDeleteHandler(row.querySelector(".btn-delete-row"));
+        });
+
+        function attachDeleteHandler(btn) {
+            btn.addEventListener("click", function() {
+                const rows = container.querySelectorAll(".med-row");
+                if (rows.length > 1) {
+                    btn.closest(".med-row").remove();
+                } else {
+                    // Just clear inputs
+                    btn.closest(".med-row").querySelectorAll("input").forEach(input => input.value = "");
+                }
+            });
+        }
+
+        document.querySelectorAll(".btn-delete-row").forEach(attachDeleteHandler);
+    });
+</script>
+{% endblock %}
