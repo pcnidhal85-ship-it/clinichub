@@ -30,6 +30,7 @@ from .views import (
     staff_register_patient,
     staff_cancel_appointment,
     staff_reschedule_appointment,
+    staff_send_appointment_reminder,
     # Phase 4: Admin Management Views
     admin_dashboard,
     admin_doctor_list,
@@ -45,6 +46,7 @@ from .views import (
     admin_department_edit,
     admin_department_toggle,
     admin_reports,
+    admin_audit_logs,
     # Phase 5: Medical Records (EMR Lite) Views
     record_patient_vitals,
     patient_vitals_history,
@@ -65,6 +67,15 @@ from .views import (
     billing_service_toggle,
     patient_billing_history,
     patient_invoice_detail,
+    # Phase 7.4: Notification Views
+    notification_list_view,
+    mark_notification_as_read_view,
+    mark_all_notifications_as_read_view,
+    api_unread_notifications_count,
+    # Phase 7.6: Real-time Queue Views
+    live_queue_display,
+    api_live_queue,
+    update_queue_patient_status,
 )
 
 urlpatterns = [
@@ -81,6 +92,10 @@ urlpatterns = [
     path('today-appointments/', today_appointments, name='today-appointments'),
     path('check-in/<int:appointment_id>/', check_in_patient, name='check-in-patient'),
     path('queue/', queue, name='queue'),
+    path('queue/live/', live_queue_display, name='live-queue-display'),
+    path('api/queue/live/', api_live_queue, name='api-live-queue'),
+    path('queue/call-next/', call_next_patient, name='queue-call-next'),
+    path('queue/appointment/<int:appointment_id>/update-status/', update_queue_patient_status, name='queue-update-patient-status'),
     path('walk-in/', walk_in_booking, name='walk-in-booking'),
 
     # Phase 4: Custom Admin Management Portal Routes
@@ -98,6 +113,7 @@ urlpatterns = [
     path('admin/departments/<int:department_id>/edit/', admin_department_edit, name='admin-department-edit'),
     path('admin/departments/<int:department_id>/toggle/', admin_department_toggle, name='admin-department-toggle'),
     path('admin/reports/', admin_reports, name='admin-reports'),
+    path('admin/audit-logs/', admin_audit_logs, name='admin-audit-logs'),
 
     # Phase 3: Staff / Receptionist Portal Routes
     path('staff/dashboard/', staff_dashboard, name='staff-dashboard'),
@@ -105,6 +121,7 @@ urlpatterns = [
     path('staff/patients/register/', staff_register_patient, name='staff-register-patient'),
     path('staff/appointment/<int:appointment_id>/cancel/', staff_cancel_appointment, name='staff-cancel-appointment'),
     path('staff/appointment/<int:appointment_id>/reschedule/', staff_reschedule_appointment, name='staff-reschedule-appointment'),
+    path('staff/appointment/<int:appointment_id>/send-reminder/', staff_send_appointment_reminder, name='staff-send-appointment-reminder'),
 
     # Phase 2: Doctor Portal Routes
     path('doctor/dashboard/', doctor_dashboard, name='doctor-dashboard'),
@@ -140,5 +157,11 @@ urlpatterns = [
     path('billing/services/<int:service_id>/toggle/', billing_service_toggle, name='billing-service-toggle'),
     path('patient/billing/', patient_billing_history, name='patient-billing-history'),
     path('patient/billing/<int:invoice_id>/', patient_invoice_detail, name='patient-invoice-detail'),
+
+    # Phase 7.4: In-App Notifications
+    path('notifications/', notification_list_view, name='notification-list'),
+    path('notifications/<int:notification_id>/read/', mark_notification_as_read_view, name='mark-notification-read'),
+    path('notifications/read-all/', mark_all_notifications_as_read_view, name='mark-all-notifications-read'),
+    path('api/notifications/poll/', api_unread_notifications_count, name='api-notifications-poll'),
 ]
 

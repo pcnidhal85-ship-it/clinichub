@@ -1,0 +1,190 @@
+/* ========================================================
+   ClinicHub — Emerald & Gold Splash Screen Overlay Styles
+   ======================================================== */
+
+.clinichub-splash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999999;
+    background: radial-gradient(circle at center, #072216 0%, #03110b 60%, #010604 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s ease;
+    overflow: hidden;
+}
+
+.clinichub-splash-overlay.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.clinichub-splash-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-bg-ambient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.splash-ambient-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(197, 160, 89, 0.18) 0%, rgba(8, 127, 140, 0.08) 40%, transparent 70%);
+    filter: blur(40px);
+    border-radius: 50%;
+    animation: ambientPulse 3s ease-in-out infinite;
+}
+
+@keyframes ambientPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.splash-logo-card {
+    position: relative;
+    z-index: 2;
+    background: rgba(7, 25, 17, 0.88);
+    border: 1.5px solid rgba(197, 160, 89, 0.35);
+    border-radius: 24px;
+    padding: 36px 44px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(197, 160, 89, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 380px;
+    max-width: 90vw;
+    animation: cardIntro 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardIntro {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.splash-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.splash-brand-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #c5a059 0%, #9e7d3b 100%);
+    color: #051a11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(197, 160, 89, 0.35);
+}
+
+.splash-brand-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 30%, #e4ca8b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.splash-ecg-path {
+    width: 140px;
+    height: 40px;
+    color: #e4ca8b;
+    margin-bottom: 16px;
+}
+
+.splash-ecg-path path {
+    stroke-dasharray: 120;
+    stroke-dashoffset: 120;
+    animation: ecgStroke 1.6s ease-in-out infinite;
+}
+
+@keyframes ecgStroke {
+    0% { stroke-dashoffset: 120; }
+    50% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -120; }
+}
+
+.splash-tagline {
+    font-size: 13px;
+    color: #a3b8ad;
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+}
+
+.splash-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.splash-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #087f8c 0%, #c5a059 100%);
+    border-radius: 9999px;
+    transition: width 0.1s linear;
+}
+
+.splash-skip-btn {
+    background: transparent;
+    border: 1px solid rgba(197, 160, 89, 0.3);
+    color: #e4ca8b;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 9999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.splash-skip-btn:hover {
+    background: rgba(197, 160, 89, 0.18);
+    border-color: #c5a059;
+    color: #ffffff;
+    transform: translateY(-1px);
+}

@@ -1,417 +1,835 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}ClinicHub — Modern Healthcare & Clinic Management{% endblock %}
+{% block title %}ClinicHub — Compassionate Care, Smart Scheduling{% endblock %}
+
+{% block body_class %}is-home-page{% endblock %}
+{% block header_class %}header-transparent{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/clinic_splash.css' %}?v={% now 'U' %}">
+<link rel="stylesheet" href="{% static 'css/clinic_hero_fullscreen.css' %}?v={% now 'U' %}">
 <style>
-    /* HERO */
-    .hero {
-        padding: 50px 0 70px;
-        display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        align-items: center;
-        gap: 50px;
-    }
-    .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #e6f6f8;
-        color: #087f8c;
-        padding: 6px 14px;
-        border-radius: var(--radius-full);
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 20px;
-    }
-    .hero-badge-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #087f8c;
-    }
-    .hero h1 {
-        font-size: 46px;
-        font-weight: 800;
-        line-height: 1.15;
-        color: var(--text-primary);
-        letter-spacing: -1px;
-        margin-bottom: 18px;
-    }
-    .hero h1 span {
-        color: var(--primary);
-    }
-    .hero-text {
-        font-size: 17px;
-        color: var(--text-secondary);
-        line-height: 1.6;
-        margin-bottom: 30px;
-        max-width: 540px;
-    }
-    .hero-buttons {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-    .hero-visual {
-        background: linear-gradient(135deg, #087f8c 0%, #0c2340 100%);
-        border-radius: 28px;
-        padding: 40px;
-        color: white;
-        box-shadow: var(--shadow-xl);
-        position: relative;
-        overflow: hidden;
-    }
-    .stat-pill {
-        background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(8px);
-        padding: 16px 20px;
-        border-radius: var(--radius-md);
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-    .stat-pill:last-child {
-        margin-bottom: 0;
-    }
+/* Micro-Animations & Gold Wave Vector Background */
+@keyframes heartPulse {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.12); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.12); }
+}
 
-    /* SERVICES */
-    .section-title {
-        text-align: center;
-        margin-bottom: 45px;
-    }
-    .section-title h2 {
-        font-size: 32px;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin-bottom: 10px;
-    }
-    .section-title p {
-        color: var(--text-secondary);
-        font-size: 16px;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    .services-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 25px;
-        margin-bottom: 80px;
-    }
-    .service-card {
-        background: white;
-        padding: 30px 25px;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-color);
-        box-shadow: var(--shadow-sm);
-        transition: var(--transition);
-    }
-    .service-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-    .service-icon {
-        width: 54px;
-        height: 54px;
-        border-radius: var(--radius-md);
-        background: #e6f6f8;
-        color: #087f8c;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        margin-bottom: 20px;
-    }
-    .service-card h3 {
-        font-size: 18px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    .service-card p {
-        font-size: 14px;
-        color: var(--text-secondary);
-        line-height: 1.6;
-    }
+.pulse-heartbeat-svg path {
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: dashECG 2.4s ease-in-out infinite;
+}
 
-    /* HOW IT WORKS */
-    .steps-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 25px;
-        margin-bottom: 80px;
-    }
-    .step-card {
-        background: white;
-        padding: 30px 22px;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-color);
-        position: relative;
-    }
-    .step-num {
-        font-size: 38px;
-        font-weight: 800;
-        color: #e2e8f0;
-        line-height: 1;
-        margin-bottom: 15px;
-    }
-    .step-card h3 {
-        font-size: 17px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-    .step-card p {
-        font-size: 13.5px;
-        color: var(--text-secondary);
-        line-height: 1.5;
-    }
+@keyframes dashECG {
+    0% { stroke-dashoffset: 60; }
+    50% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -60; }
+}
 
-    /* CTA */
-    .cta-banner {
-        background: linear-gradient(135deg, #087f8c 0%, #04434a 100%);
-        border-radius: 28px;
-        padding: 60px 40px;
-        text-align: center;
-        color: white;
-        margin-bottom: 50px;
-        box-shadow: var(--shadow-xl);
-    }
-    .cta-banner h2 {
-        font-size: 34px;
-        font-weight: 800;
-        margin-bottom: 12px;
-        color: white;
-    }
-    .cta-banner p {
-        font-size: 16px;
-        opacity: 0.92;
-        max-width: 550px;
-        margin: 0 auto 30px;
-        line-height: 1.6;
-    }
+/* Tour Modal Styles in Emerald & Gold */
+.clinic-tour-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(5, 20, 13, 0.82);
+    backdrop-filter: blur(10px);
+    z-index: 100000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
 
-    @media (max-width: 900px) {
-        .hero {
-            grid-template-columns: 1fr;
-            text-align: center;
-            gap: 40px;
-        }
-        .hero h1 {
-            font-size: 36px;
-        }
-        .hero-text {
-            margin: 0 auto 30px;
-        }
-        .hero-buttons {
-            justify-content: center;
-        }
-    }
+.clinic-tour-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.clinic-tour-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -48%) scale(0.96);
+    width: 900px;
+    max-width: 94vw;
+    background: #0b261b;
+    border: 1.5px solid rgba(197, 160, 89, 0.45);
+    border-radius: 24px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(197, 160, 89, 0.15);
+    z-index: 100001;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    color: #ffffff;
+}
+
+.clinic-tour-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.tour-modal-header {
+    padding: 18px 24px;
+    background: #071911;
+    border-bottom: 1px solid rgba(197, 160, 89, 0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tour-slide-body {
+    padding: 30px;
+}
+
+.tour-dots-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.tour-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(197, 160, 89, 0.3);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.tour-dot.active {
+    background: #c5a059;
+    width: 26px;
+    border-radius: var(--radius-full);
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Hero Section -->
-    <section class="hero">
-        <div>
-            <div class="hero-badge">
-                <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i>
-                Thoughtful Healthcare & Smart Scheduling
+<!-- Animated Logo Splash Screen (Emerald & Gold) -->
+{% include "users/includes/splash_overlay.html" with is_standalone=False %}
+
+<!-- ================= 1. TRUE FULLSCREEN HERO (100vh Fold - Reference Image Style) ================= -->
+<section class="hero-fullscreen-wrapper emerald-gold-canvas">
+    <!-- SVG Gold Topographic Wave Contours (Direct Reference Image Motif) -->
+    <svg class="gold-wave-overlay" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M-100 200 C300 120, 600 350, 1100 180 C1300 120, 1500 280, 1600 220" stroke="rgba(212, 175, 55, 0.32)" stroke-width="1.4" stroke-dasharray="8 6"/>
+        <path d="M-50 240 C350 160, 650 390, 1150 220 C1350 160, 1550 320, 1650 260" stroke="rgba(212, 175, 55, 0.22)" stroke-width="1.2"/>
+        <path d="M-80 600 C250 500, 500 750, 950 580 C1250 480, 1400 700, 1600 620" stroke="rgba(212, 175, 55, 0.28)" stroke-width="1.3"/>
+        <path d="M-40 640 C290 540, 540 790, 990 620 C1290 520, 1440 740, 1640 660" stroke="rgba(212, 175, 55, 0.18)" stroke-width="1.1"/>
+        <path d="M100 850 C450 780, 800 880, 1200 820 C1400 790, 1500 850, 1600 830" stroke="rgba(212, 175, 55, 0.25)" stroke-width="1"/>
+    </svg>
+
+    <!-- Ambient Glowing Gold & Emerald Orbs -->
+    <div class="gold-glow-orb orb-gold-1" aria-hidden="true"></div>
+    <div class="gold-glow-orb orb-emerald-1" aria-hidden="true"></div>
+
+    <!-- Center 2-Column Grid (Grand Left Content & Arched Right Visual) -->
+    <div class="hero-fullscreen-grid">
+        <!-- Left Side: Grand Headline, Subtitle, CTA Group, Trust Metrics -->
+        <div class="hero-left-content">
+            <div class="gold-eyebrow-tag">
+                <span>Compassionate Care for You and Your Family &bull; ★ Your Health, Our Priority</span>
             </div>
 
-            <h1>
-                Care designed around <br>
-                <span>your time and comfort.</span>
+            <h1 class="hero-grand-title">
+                Family-Friendly<br>
+                <span class="gold-gradient-text">Dental &amp; Clinic Care</span>
             </h1>
 
-            <p class="hero-text">
-                ClinicHub brings transparency to your outpatient visits. Book appointments with trusted doctors, monitor waiting queues in real time, and access your consultation records with complete peace of mind.
+            <p class="hero-grand-subtitle">
+                Compassionate Care for You and Your Family &mdash; personalized healing solutions to restore wellbeing and deliver confident, compassionate care. Verified specialists, zero waiting-room anxiety, and instant real-time tokens.
             </p>
 
-            <div class="hero-buttons">
-                {% if user.is_authenticated %}
-                    {% if user.user_type == "PATIENT" %}
-                        <a href="{% url 'patient-dashboard' %}" class="btn btn-primary btn-lg">
-                            <i class="fa-solid fa-chart-pie"></i>
-                            <span>My Dashboard</span>
-                        </a>
-                        <a href="{% url 'create-appointment' %}" class="btn btn-outline btn-lg">
-                            <i class="fa-regular fa-calendar-plus"></i>
-                            <span>Book an Appointment</span>
-                        </a>
-                    {% elif user.user_type == "STAFF" %}
-                        <a href="{% url 'today-appointments' %}" class="btn btn-primary btn-lg">
-                            <i class="fa-solid fa-calendar-check"></i>
-                            <span>Reception Desk</span>
-                        </a>
-                        <a href="{% url 'queue' %}" class="btn btn-outline btn-lg">
-                            <i class="fa-solid fa-users-line"></i>
-                            <span>Waiting Queue</span>
-                        </a>
-                    {% elif user.user_type == "DOCTOR" %}
-                        <a href="{% url 'doctor-dashboard' %}" class="btn btn-primary btn-lg">
-                            <i class="fa-solid fa-stethoscope"></i>
-                            <span>Doctor Portal</span>
-                        </a>
-                        <a href="{% url 'doctor-availability' %}" class="btn btn-outline btn-lg">
-                            <i class="fa-regular fa-clock"></i>
-                            <span>My Schedule</span>
-                        </a>
-                    {% else %}
-                        <a href="/admin/" class="btn btn-primary btn-lg">
-                            <i class="fa-solid fa-shield-halved"></i>
-                            <span>Admin Console</span>
-                        </a>
-                    {% endif %}
-                {% else %}
-                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <span>Register as a Patient</span>
-                    </a>
-                    <a href="{% url 'login' %}" class="btn btn-outline btn-lg">
-                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                        <span>Sign In</span>
-                    </a>
-                {% endif %}
+            <!-- Hero Action Buttons -->
+            <div class="hero-cta-group">
+                <a href="{% url 'create-appointment' %}" class="btn-gold-primary">
+                    <i class="fa-regular fa-calendar-plus" aria-hidden="true"></i>
+                    <span>Book an Appointment</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+
+                <button type="button" class="btn-gold-glass" id="openClinicTourModalBtn" aria-label="Open Virtual Clinic Tour">
+                    <span class="btn-gold-play-circle"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
+                    <span>Virtual Clinic Tour</span>
+                </button>
+
+                <a href="{% url 'live-queue-display' %}" target="_blank" class="btn-gold-outline" title="Live Waiting Room TV Display">
+                    <i class="fa-solid fa-tv" aria-hidden="true"></i>
+                    <span>Live TV Board</span>
+                </a>
+            </div>
+
+            <!-- Social Proof Strip -->
+            <div class="hero-trust-strip">
+                <div class="hero-trust-avatars">
+                    <img src="{% static 'images/clinic_care_nurse.jpg' %}" alt="Care Provider" class="trust-avatar">
+                    <img src="{% static 'images/clinic_hero_humanized.jpg' %}" alt="Specialist" class="trust-avatar">
+                    <img src="{% static 'images/clinic_hero_consultation.jpg' %}" alt="Doctor" class="trust-avatar">
+                    <span class="trust-avatar-count">+120</span>
+                </div>
+                <div class="hero-trust-meta">
+                    <div class="hero-trust-stars">
+                        <i class="fa-solid fa-star" aria-hidden="true"></i>
+                        <i class="fa-solid fa-star" aria-hidden="true"></i>
+                        <i class="fa-solid fa-star" aria-hidden="true"></i>
+                        <i class="fa-solid fa-star" aria-hidden="true"></i>
+                        <i class="fa-solid fa-star" aria-hidden="true"></i>
+                        <strong>4.9 / 5.0 Rating</strong>
+                    </div>
+                    <span class="hero-trust-caption">Restore natural healthy confident health growth &bull; 1.2k Patient Reviews</span>
+                </div>
             </div>
         </div>
 
-        <div class="hero-visual">
-            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 22px; color: white; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-shield-heart" style="color: #80e5ff;"></i>
-                <span>Designed for Patients & Clinicians</span>
-            </h3>
+        <!-- Right Side: Signature Arched Frame (Reference Image Motif) & Floating Gold Cards -->
+        <div class="hero-right-visual">
+            <div class="arched-window-stage hero-video-frame" id="heroVideoFrame">
+                <img src="{% static 'videos/clinic_tour.webp' %}" alt="ClinicHub Cinematic Tour" class="arched-window-img hero-video-element" id="heroVideoElement">
+                <div class="arched-overlay-gradient"></div>
 
-            <div class="stat-pill">
-                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #80e5ff;">
-                    <i class="fa-solid fa-ticket"></i>
-                </div>
-                <div>
-                    <div style="font-weight: 700; font-size: 15px;">Real-Time Queue Tokens</div>
-                    <div style="font-size: 12.5px; opacity: 0.88;">Know your position and arrive just in time</div>
+                <!-- Interactive Scene Switcher Pills Inside Frame -->
+                <div class="hero-scene-bar" id="videoSceneBar" role="tablist" aria-label="Clinic scene selector">
+                    <button type="button" class="hero-scene-pill video-scene-pill active" data-src="{% static 'videos/clinic_tour.webp' %}" title="Full cinematic video tour">
+                        <i class="fa-solid fa-tooth" aria-hidden="true"></i> Dental Checkup
+                    </button>
+                    <button type="button" class="hero-scene-pill video-scene-pill" data-src="{% static 'images/hero_dentora_style.jpg' %}" title="Family medicine & friendly consultations">
+                        <i class="fa-solid fa-user-doctor" aria-hidden="true"></i> Consultation
+                    </button>
+                    <button type="button" class="hero-scene-pill video-scene-pill" data-src="{% static 'images/clinic_hero_humanized.jpg' %}" title="Cardiology & Heart Care">
+                        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Cardiology
+                    </button>
+                    <button type="button" class="hero-scene-pill video-scene-pill" data-src="{% static 'images/clinic_care_nurse.jpg' %}" title="Emergency & Inpatient Care">
+                        <i class="fa-solid fa-truck-medical" aria-hidden="true"></i> Emergency Care
+                    </button>
+                    <button type="button" class="hero-scene-pill video-scene-pill" data-src="{% static 'images/service_diagnostics.jpg' %}" title="High-tech radiology & CT">
+                        <i class="fa-solid fa-x-ray" aria-hidden="true"></i> Radiology &amp; CT
+                    </button>
+                    <button type="button" class="hero-scene-pill video-scene-pill" data-src="{% static 'images/service_surgery.jpg' %}" title="Robotic surgical suites">
+                        <i class="fa-solid fa-stethoscope" aria-hidden="true"></i> Surgery Suites
+                    </button>
                 </div>
             </div>
 
-            <div class="stat-pill">
-                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #86efac;">
+            <!-- Floating Live Gold Badge 1: 120+ Specialists -->
+            <div class="floating-card-badge floating-card-top-right">
+                <div class="card-badge-icon">
+                    <i class="fa-solid fa-user-doctor" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <span class="card-badge-title">120+ Specialists</span>
+                    <span class="card-badge-sub">Immediate Consults</span>
+                </div>
+            </div>
+
+            <!-- Floating Live Gold Badge 2: 99.4% Patient Trust -->
+            <div class="floating-card-badge floating-card-bottom-left">
+                <div class="card-badge-icon">
+                    <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <span class="card-badge-title">99.4% Patient Trust</span>
+                    <span class="card-badge-sub">Live E-Queue &bull; Zero Delay</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Dock: Quick Booking Bar & Scroll Cue (Anchored Inside 1st Fold) -->
+    <div class="hero-bottom-dock">
+        <div class="glass-booking-bar" id="quick-booking">
+            <div class="glass-booking-header">
+                <span class="glass-booking-subtitle">
+                    <i class="fa-solid fa-bolt-lightning" style="color: #e4ca8b;"></i>
+                    <span style="color: #ffffff;">Fast Appointment Reservation</span>
+                </span>
+                <span class="glass-booking-hint">
+                    <i class="fa-solid fa-circle-check" style="color: #c5a059;"></i>
+                    <span style="color: #c0cfc7;">Verified Clinicians &bull; Real-Time Token Generation</span>
+                </span>
+            </div>
+
+            <form method="get" action="{% url 'create-appointment' %}" class="glass-booking-form">
+                <div class="glass-field-group">
+                    <label for="heroBookingDept" class="glass-field-label">
+                        <i class="fa-solid fa-hospital"></i> Department
+                    </label>
+                    <div class="glass-input-wrapper">
+                        <select name="department" id="heroBookingDept" class="glass-field-select" aria-label="Select Department">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="fa-solid fa-chevron-down glass-field-arrow"></i>
+                    </div>
+                </div>
+
+                <div class="glass-field-group">
+                    <label for="heroBookingDoctor" class="glass-field-label">
+                        <i class="fa-solid fa-user-doctor"></i> Doctor
+                    </label>
+                    <div class="glass-input-wrapper">
+                        <select name="doctor" id="heroBookingDoctor" class="glass-field-select" aria-label="Select Doctor">
+                            <option value="">Any Available Doctor</option>
+                            {% for doc in doctors %}
+                                <option value="{{ doc.id }}" data-dept-id="{{ doc.department.id }}">
+                                    Dr. {{ doc.user.first_name }} {{ doc.user.last_name }} ({{ doc.specialization }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <i class="fa-solid fa-chevron-down glass-field-arrow"></i>
+                    </div>
+                </div>
+
+                <div class="glass-field-group">
+                    <label for="heroBookingDate" class="glass-field-label">
+                        <i class="fa-regular fa-calendar"></i> Date
+                    </label>
+                    <div class="glass-input-wrapper">
+                        <input type="date" name="date" id="heroBookingDate" class="glass-field-input" aria-label="Select Appointment Date">
+                    </div>
+                </div>
+
+                <button type="submit" class="glass-btn-book">
+                    <span>Book Now</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Scroll Cue to Next Sections -->
+        <a href="#healing-journey" class="hero-scroll-cue" aria-label="Scroll to next section">
+            <span>Explore Clinical Divisions</span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+        </a>
+    </div>
+</section>
+
+<!-- ================= 2. SECTION: ELEVATE YOUR HEALING JOURNEY (Alabaster White / Reference Image 2) ================= -->
+<section class="section-alabaster-white" id="healing-journey">
+    <div class="arch-split-grid">
+        <!-- Left: Arched Window Photo Frame (Direct Match to Reference Image) -->
+        <div class="arch-photo-container">
+            <div class="arch-photo-frame">
+                <img src="{% static 'images/clinic_care_nurse.jpg' %}" alt="Compassionate Bedside Care">
+            </div>
+            <div class="arch-photo-badge">
+                <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+                <div>
+                    <strong style="font-size: 13.5px; display: block; color: #ffffff;">99.4% Patient Trust</strong>
+                    <span style="font-size: 11px; color: #c5a059;">Compassionate bedside focus</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Haute Editorial Narrative & Feature Rows -->
+        <div>
+            <div class="gold-eyebrow-tag" style="color: #9e7a35;">
+                <span>Patient First Philosophy</span>
+            </div>
+
+            <h2 class="arch-narrative-title">
+                Compassionate Care.<br>
+                Advanced Treatment.<br>
+                <span style="color: #c5a059;">Better Outcomes.</span>
+            </h2>
+
+            <p class="arch-narrative-sub">
+                We believe exceptional healthcare combines clinical excellence with genuine empathy. At ClinicHub, patients are listened to, respected, and kept informed at every step of their consultation journey.
+            </p>
+
+            <!-- Feature Rows with Gold Icons -->
+            <div class="feature-pill-gold-row">
+                <div class="feature-pill-gold-icon">
                     <i class="fa-solid fa-user-doctor"></i>
                 </div>
                 <div>
-                    <div style="font-weight: 700; font-size: 15px;">Specialist Care Departments</div>
-                    <div style="font-size: 12.5px; opacity: 0.88;">Cardiology, Pediatrics, Dermatology & Internal Medicine</div>
+                    <strong style="font-family: var(--font-serif); font-size: 17px; color: #071911; display: block;">Expert Doctors</strong>
+                    <span style="font-size: 13px; color: #4b6357;">Board-certified physicians across 10+ specialties dedicated to individualized care.</span>
                 </div>
             </div>
 
-            <div class="stat-pill">
-                <div class="icon-box icon-box-md" style="background: rgba(255, 255, 255, 0.15); color: #fde047;">
-                    <i class="fa-solid fa-shield-halved"></i>
+            <div class="feature-pill-gold-row">
+                <div class="feature-pill-gold-icon">
+                    <i class="fa-solid fa-hands-holding-child"></i>
                 </div>
                 <div>
-                    <div style="font-weight: 700; font-size: 15px;">Strict Confidentiality</div>
-                    <div style="font-size: 12.5px; opacity: 0.88;">Clinical notes are securely protected between doctor and patient</div>
+                    <strong style="font-family: var(--font-serif); font-size: 17px; color: #071911; display: block;">Patient First Approach</strong>
+                    <span style="font-size: 13px; color: #4b6357;">Empathetic consultations, respectful listening, and zero crowded lobby waiting.</span>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!-- Services Section -->
-    <section id="services">
-        <div class="section-title">
-            <h2>Comprehensive Clinical Care</h2>
-            <p>Every step of your visit is coordinated to reduce waiting times, protect your records, and give you attentive medical focus.</p>
-        </div>
-
-        <div class="services-grid">
-            <div class="service-card">
-                <div class="service-icon">
-                    <i class="fa-regular fa-calendar-check"></i>
+            <div class="feature-pill-gold-row">
+                <div class="feature-pill-gold-icon">
+                    <i class="fa-solid fa-microchip"></i>
                 </div>
-                <h3>Simple Online Booking</h3>
-                <p>Choose your doctor, view actual weekly hours, and reserve a convenient consultation slot in seconds.</p>
-            </div>
-
-            <div class="service-card">
-                <div class="service-icon">
-                    <i class="fa-solid fa-users-line"></i>
+                <div>
+                    <strong style="font-family: var(--font-serif); font-size: 17px; color: #071911; display: block;">Advanced Technology</strong>
+                    <span style="font-size: 13px; color: #4b6357;">Live queue tokens on Waiting Room TV, digital prescriptions, and paperless billing.</span>
                 </div>
-                <h3>Transparent Queue Status</h3>
-                <p>No waiting in crowded lobbies. Track your digital token live and see when your physician is ready.</p>
             </div>
 
-            <div class="service-card">
-                <div class="service-icon">
-                    <i class="fa-solid fa-stethoscope"></i>
-                </div>
-                <h3>Dedicated Medical Team</h3>
-                <p>Experienced physicians and staff working together to deliver attentive, individualized care.</p>
-            </div>
-
-            <div class="service-card">
-                <div class="service-icon">
-                    <i class="fa-solid fa-file-waveform"></i>
-                </div>
-                <h3>Your Health Records</h3>
-                <p>Past visits, diagnostic notes, and medication plans organized neatly in your private patient file.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works Section -->
-    <section id="how-it-works">
-        <div class="section-title">
-            <h2>How Your Visit Works</h2>
-            <p>Four easy steps from booking your consultation to walking out with your care plan.</p>
-        </div>
-
-        <div class="steps-grid">
-            <div class="step-card">
-                <div class="step-num">01</div>
-                <h3>Quick Sign Up</h3>
-                <p>Create your verified patient account in less than two minutes with basic health info.</p>
-            </div>
-
-            <div class="step-card">
-                <div class="step-num">02</div>
-                <h3>Pick Doctor & Slot</h3>
-                <p>Browse by specialty and choose an available date and time that matches your schedule.</p>
-            </div>
-
-            <div class="step-card">
-                <div class="step-num">03</div>
-                <h3>Get Your Token</h3>
-                <p>Receive your digital token instantly so reception and nursing know you are on the list.</p>
-            </div>
-
-            <div class="step-card">
-                <div class="step-num">04</div>
-                <h3>Check In & Consult</h3>
-                <p>Check in at reception, meet with your doctor, and find your prescription notes on your dashboard.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="cta-banner">
-        <h2>Experience Healthcare Without the Friction</h2>
-        <p>Book your next doctor appointment online or log into your patient dashboard today.</p>
-        {% if user.is_authenticated %}
-            {% if user.user_type == "PATIENT" %}
-                <a href="{% url 'create-appointment' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
-                    <i class="fa-regular fa-calendar-plus"></i>
-                    <span>Schedule an Appointment</span>
-                </a>
-            {% else %}
-                <a href="{% url 'today-appointments' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
+            <div style="margin-top: 26px;">
+                <a href="{% url 'create-appointment' %}" class="btn-gold-primary">
+                    <span>Schedule Consultation</span>
                     <i class="fa-solid fa-arrow-right"></i>
-                    <span>View Today's Schedule</span>
                 </a>
-            {% endif %}
-        {% else %}
-            <a href="{% url 'signup' %}" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;">
-                <i class="fa-solid fa-user-plus"></i>
-                <span>Create Your Patient Account</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= 3. SECTION: SERVICES (Deep Emerald & Gold Cards / Reference Image 3) ================= -->
+<section class="section-emerald-services emerald-gold-canvas" id="services">
+    <svg class="gold-wave-overlay" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M-50 150 C350 80, 700 280, 1150 140 C1350 90, 1500 220, 1600 180" stroke="rgba(212, 175, 55, 0.3)" stroke-width="1.3"/>
+        <path d="M-80 400 C300 320, 650 500, 1100 360 C1300 300, 1450 450, 1600 400" stroke="rgba(212, 175, 55, 0.22)" stroke-width="1.2"/>
+    </svg>
+
+    <div class="section-gold-header">
+        <div class="gold-eyebrow-tag">
+            <span>Comprehensive Clinical Divisions</span>
+        </div>
+        <h2 class="section-gold-title">SERVICES</h2>
+        <p style="font-size: 15px; color: #c0cfc7; max-width: 620px; margin: 0 auto; line-height: 1.6;">
+            From high-resolution radiology to minimally invasive procedures and live outpatient queues.
+        </p>
+    </div>
+
+    <!-- 3 Gold-Bordered Featured Service Cards (Reference Image Layout) -->
+    <div class="services-gold-grid">
+        <!-- Advanced Diagnostics -->
+        <div class="service-gold-card">
+            <div class="service-gold-img-frame">
+                <img src="{% static 'images/service_diagnostics.jpg' %}" alt="Advanced Diagnostics">
+            </div>
+            <div>
+                <h3 class="service-gold-name">Advanced Diagnostics</h3>
+                <p class="service-gold-desc">
+                    High-precision CT and MRI imaging with modern patient-comfort machinery and rapid diagnostic reporting.
+                </p>
+            </div>
+            <a href="{% url 'create-appointment' %}" class="btn-card-gold">
+                <span>Schedule Scan</span> <i class="fa-solid fa-arrow-right"></i>
             </a>
-        {% endif %}
-    </section>
+        </div>
+
+        <!-- Specialized Surgeries -->
+        <div class="service-gold-card">
+            <div class="service-gold-img-frame">
+                <img src="{% static 'images/service_surgery.jpg' %}" alt="Specialized Surgeries">
+            </div>
+            <div>
+                <h3 class="service-gold-name">Specialized Surgeries</h3>
+                <p class="service-gold-desc">
+                    State-of-the-art robotic operating theaters with sterile surgical suites and attentive post-operative nursing.
+                </p>
+            </div>
+            <a href="{% url 'create-appointment' %}" class="btn-card-gold">
+                <span>Consult Surgeon</span> <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- Transparent Queue Board -->
+        <div class="service-gold-card">
+            <div class="service-gold-img-frame">
+                <img src="{% static 'images/clinic_hero_consultation.jpg' %}" alt="Live Queue Tokens">
+            </div>
+            <div>
+                <h3 class="service-gold-name">Transparent Queue Board</h3>
+                <p class="service-gold-desc">
+                    Watch your token live on your phone or clinic TV with synthesized audio chimes when your doctor is ready.
+                </p>
+            </div>
+            <a href="{% url 'live-queue-display' %}" target="_blank" class="btn-card-gold">
+                <span>View Live TV Board</span> <i class="fa-solid fa-tv"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Specialized Departments Badge Row -->
+    <div id="departments" style="max-width: 1240px; margin: 0 auto;">
+        <div class="dept-grid-3d">
+            <!-- Emergency Care -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-truck-medical"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">Emergency Care</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">24/7 Rapid Trauma &amp; Triage</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">24/7 Active</span>
+            </a>
+
+            <!-- Pediatric Department -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-baby"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">Pediatric Care</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">Infant, Child &amp; Teen Health</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">Gentle Care</span>
+            </a>
+
+            <!-- Cardiology -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">Cardiology</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">Heart, ECG &amp; Vascular Lab</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">Cardio Diagnostics</span>
+            </a>
+
+            <!-- General Physician -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">General Medicine</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">Primary Health &amp; Prevention</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">Same-Day Slots</span>
+            </a>
+
+            <!-- Orthopedics -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-bone"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">Orthopedics</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">Joints, Bones &amp; Mobility</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">Joint Specialist</span>
+            </a>
+
+            <!-- Dermatology -->
+            <a href="{% url 'create-appointment' %}" class="dept-card-3d" style="background: #0b261b; border: 1px solid rgba(197, 160, 89, 0.35);">
+                <div class="dept-icon-3d" style="background: linear-gradient(135deg, #c5a059, #9e7a35); color: #071911;">
+                    <i class="fa-solid fa-hand-holding-medical"></i>
+                </div>
+                <h3 class="dept-name-3d" style="color: #ffffff; font-family: var(--font-serif); font-size: 19px;">Dermatology</h3>
+                <span class="dept-desc-3d" style="color: #c0cfc7;">Clinical Skin &amp; Laser Care</span>
+                <span class="dept-badge-pill" style="border: 1px solid rgba(197, 160, 89, 0.4); background: rgba(197, 160, 89, 0.15); color: #e4ca8b;">Advanced Therapy</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ================= 4. SECTION: CLIENT LOVE (Testimonials in Emerald & Gold / Reference Image 4) ================= -->
+<section class="section-emerald-testimonials emerald-gold-canvas">
+    <svg class="gold-wave-overlay" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M-80 300 C300 200, 700 450, 1100 280 C1300 220, 1450 380, 1600 320" stroke="rgba(212, 175, 55, 0.25)" stroke-width="1.2"/>
+    </svg>
+
+    <div class="section-gold-header">
+        <div class="gold-eyebrow-tag">
+            <span>Verified Patient Experiences</span>
+        </div>
+        <h2 class="section-gold-title">CLIENT LOVE</h2>
+        <p style="font-size: 15px; color: #c0cfc7; max-width: 580px; margin: 0 auto; line-height: 1.6;">
+            Hear directly from patients whose health and confidence have been restored through compassionate clinical care.
+        </p>
+    </div>
+
+    <!-- 3 Testimonial Cards (Reference Image Style) -->
+    <div class="testimonials-gold-grid">
+        <div class="testimonial-gold-card">
+            <div class="testimonial-stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-quote-text">
+                &ldquo;The live queue system meant zero crowded lobby waiting. Dr. Marcus Vance took the time to listen and tailor a cardiac recovery plan that truly worked.&rdquo;
+            </p>
+            <div>
+                <span class="testimonial-author-name">Sarah Jenkins</span>
+                <span class="testimonial-author-dept">Cardiology Outpatient &bull; Verified Patient</span>
+            </div>
+        </div>
+
+        <div class="testimonial-gold-card">
+            <div class="testimonial-stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-quote-text">
+                &ldquo;Compassionate bedside nurses and paperless billing right on my phone. The digital check-in token eliminated the entire friction of hospital visits.&rdquo;
+            </p>
+            <div>
+                <span class="testimonial-author-name">David Chen</span>
+                <span class="testimonial-author-dept">Pediatric &amp; Family Care &bull; Verified Patient</span>
+            </div>
+        </div>
+
+        <div class="testimonial-gold-card">
+            <div class="testimonial-stars">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-quote-text">
+                &ldquo;State-of-the-art diagnostics and rapid CT reporting. The calm, modern clinic atmosphere immediately put our family at total ease.&rdquo;
+            </p>
+            <div>
+                <span class="testimonial-author-name">Aurelia Ross</span>
+                <span class="testimonial-author-dept">Diagnostic Imaging &bull; Verified Patient</span>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="{% url 'create-appointment' %}" class="btn-card-gold" style="font-size: 13px; padding: 12px 28px;">
+            <span>Book Your Consultation</span> <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </div>
+</section>
+
+<!-- ================= 5. SECTION: ABOUT CLINICHUB (Alabaster White / Reference Image 5) ================= -->
+<section class="section-about-alabaster">
+    <div class="arch-split-grid">
+        <!-- Left: Arched Doctor Portrait Frame (Reference Image) -->
+        <div class="arch-photo-container">
+            <div class="arch-photo-frame">
+                <img src="{% static 'images/clinic_hero_consultation.jpg' %}" alt="About ClinicHub Care">
+            </div>
+            <div class="arch-photo-badge">
+                <i class="fa-solid fa-award" aria-hidden="true"></i>
+                <div>
+                    <strong style="font-size: 13.5px; display: block; color: #ffffff;">Excellence in Care</strong>
+                    <span style="font-size: 11px; color: #c5a059;">Accredited Healthcare Facility</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Story Narrative -->
+        <div>
+            <div class="gold-eyebrow-tag" style="color: #9e7a35;">
+                <span>About ClinicHub Healthcare</span>
+            </div>
+
+            <h2 class="arch-narrative-title">
+                Restoring Wellbeing With Dignity, Empathy &amp; Grace
+            </h2>
+
+            <p class="arch-narrative-sub">
+                Founded on the belief that healthcare should be comforting and unhurried, ClinicHub combines world-class diagnostic medicine with deeply personal patient advocacy. Every room is designed for peace of mind, every physician is verified for excellence, and our electronic health records guarantee seamless continuity of care.
+            </p>
+
+            <p style="font-size: 15px; color: #4b6357; line-height: 1.7; margin-bottom: 28px;">
+                Whether you need a quick dental checkup, comprehensive cardiovascular screening, or gentle pediatric care for your child, our medical team welcomes you with warmth and individualized healing protocols.
+            </p>
+
+            <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                <a href="{% url 'create-appointment' %}" class="btn-gold-primary">
+                    <span>Schedule Appointment</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <button type="button" class="btn-gold-glass" onclick="document.getElementById('openClinicTourModalBtn').click()" style="color: #0b261b; border-color: rgba(197, 160, 89, 0.6); background: rgba(197, 160, 89, 0.15);">
+                    <i class="fa-solid fa-video" style="color: #9e7a35;"></i>
+                    <span>Virtual Walkthrough</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= 6. SECTION: CONTACT US (Deep Emerald & Gold Form / Reference Image 6) ================= -->
+<section class="section-emerald-contact emerald-gold-canvas" id="contact">
+    <svg class="gold-wave-overlay" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M-50 250 C300 150, 700 380, 1100 240 C1300 180, 1450 320, 1600 280" stroke="rgba(212, 175, 55, 0.25)" stroke-width="1.2"/>
+    </svg>
+
+    <div class="contact-gold-grid">
+        <!-- Left Side: Contact Information -->
+        <div>
+            <div class="gold-eyebrow-tag">
+                <span>Direct Clinical Access</span>
+            </div>
+            <h2 class="section-gold-title" style="text-align: left; font-size: 46px; margin-bottom: 18px;">CONTACT US</h2>
+            <p style="font-size: 15.5px; color: #c0cfc7; line-height: 1.7; margin-bottom: 30px;">
+                Have questions or need emergency assistance? Our dedicated clinical concierge team is on duty 24/7 to assist you.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(197, 160, 89, 0.15); border: 1px solid rgba(197, 160, 89, 0.35); color: #e4ca8b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <i class="fa-solid fa-phone-volume"></i>
+                    </div>
+                    <div>
+                        <strong style="color: #ffffff; display: block; font-size: 15px;">24/7 Emergency Triage</strong>
+                        <span style="color: #c5a059; font-size: 13.5px;">+1 (800) 456-7890</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(197, 160, 89, 0.15); border: 1px solid rgba(197, 160, 89, 0.35); color: #e4ca8b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div>
+                        <strong style="color: #ffffff; display: block; font-size: 15px;">ClinicHub Medical Center</strong>
+                        <span style="color: #c0cfc7; font-size: 13.5px;">100 Health Sciences Way, Suite 400</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(197, 160, 89, 0.15); border: 1px solid rgba(197, 160, 89, 0.35); color: #e4ca8b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                    <div>
+                        <strong style="color: #ffffff; display: block; font-size: 15px;">Outpatient Consulting Hours</strong>
+                        <span style="color: #c0cfc7; font-size: 13.5px;">Mon &ndash; Sat: 8:00 AM &ndash; 8:00 PM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Contact Form (Direct Reference Image Styling) -->
+        <div class="contact-gold-form">
+            <form method="get" action="{% url 'create-appointment' %}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="contact-input-group">
+                        <label class="contact-input-label">First Name</label>
+                        <input type="text" class="contact-input-field" placeholder="First Name">
+                    </div>
+                    <div class="contact-input-group">
+                        <label class="contact-input-label">Last Name</label>
+                        <input type="text" class="contact-input-field" placeholder="Last Name">
+                    </div>
+                </div>
+
+                <div class="contact-input-group">
+                    <label class="contact-input-label">Email Address</label>
+                    <input type="email" class="contact-input-field" placeholder="your.name@example.com">
+                </div>
+
+                <div class="contact-input-group">
+                    <label class="contact-input-label">Inquiry or Medical Note</label>
+                    <textarea rows="3" class="contact-input-field" placeholder="Describe symptoms or appointment preference..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-gold-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+                    <span>Send Message &bull; Reserve Slot</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ================= 7. INTERACTIVE CLINIC TOUR VIDEO MODAL ================= -->
+<div class="clinic-tour-backdrop" id="clinicTourBackdrop"></div>
+<div class="clinic-tour-modal" id="clinicTourModal" role="dialog" aria-modal="true" aria-label="Virtual Clinic Tour" aria-hidden="true">
+    <div class="tour-modal-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(197, 160, 89, 0.2); border: 1px solid #c5a059; color: #e4ca8b; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-video"></i>
+            </div>
+            <div>
+                <strong style="font-family: var(--font-serif); font-size: 17px; color: #ffffff; display: block;">ClinicHub Guided Experience</strong>
+                <span style="font-size: 12px; color: #c5a059;">Virtual walk-through of modern patient care</span>
+            </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="closeClinicTourModalBtn" aria-label="Close Tour Modal" style="padding: 6px 12px; border-color: rgba(197, 160, 89, 0.4); color: #e4ca8b;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <div class="tour-slide-body">
+        <!-- Slide 1: Welcome & Reception -->
+        <div class="tour-slide" style="display: block;">
+            <div style="position: relative; border-radius: 16px; overflow: hidden; height: 340px; margin-bottom: 20px; border: 1px solid rgba(197, 160, 89, 0.3);">
+                <img src="{% static 'images/clinic_hero_consultation.jpg' %}" alt="Front Desk Reception" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="video-live-chip" style="top: 14px; left: 14px; background: #071911; border: 1px solid #c5a059; color: #e4ca8b;">STEP 1 / 4 &bull; RECEPTION</span>
+            </div>
+            <h3 style="font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">
+                Warm Welcome & Instant Digital Check-In
+            </h3>
+            <p style="font-size: 14.5px; color: #c0cfc7; line-height: 1.6;">
+                Our reception team greets every patient with warmth and care. Check in with your digital token in less than 30 seconds &mdash; no paper forms or redundant queues.
+            </p>
+        </div>
+
+        <!-- Slide 2: Doctor Consultation -->
+        <div class="tour-slide" style="display: none;">
+            <div style="position: relative; border-radius: 16px; overflow: hidden; height: 340px; margin-bottom: 20px; border: 1px solid rgba(197, 160, 89, 0.3);">
+                <img src="{% static 'images/clinic_hero_humanized.jpg' %}" alt="Doctor Consultation" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="video-live-chip" style="top: 14px; left: 14px; background: #071911; border: 1px solid #c5a059; color: #e4ca8b;">STEP 2 / 4 &bull; CONSULTATION</span>
+            </div>
+            <h3 style="font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">
+                Compassionate Clinician Engagement
+            </h3>
+            <p style="font-size: 14.5px; color: #c0cfc7; line-height: 1.6;">
+                Meet one-on-one with board-certified physicians in peaceful, modern consultation rooms. Clinical notes, diagnoses, and medical advice are captured directly in your private records.
+            </p>
+        </div>
+
+        <!-- Slide 3: Bedside & Nurse Care -->
+        <div class="tour-slide" style="display: none;">
+            <div style="position: relative; border-radius: 16px; overflow: hidden; height: 340px; margin-bottom: 20px; border: 1px solid rgba(197, 160, 89, 0.3);">
+                <img src="{% static 'images/clinic_care_nurse.jpg' %}" alt="Bedside Care" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="video-live-chip" style="top: 14px; left: 14px; background: #071911; border: 1px solid #c5a059; color: #e4ca8b;">STEP 3 / 4 &bull; PATIENT CARE</span>
+            </div>
+            <h3 style="font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">
+                Dedicated Bedside Focus & Comfort
+            </h3>
+            <p style="font-size: 14.5px; color: #c0cfc7; line-height: 1.6;">
+                Attentive nursing care with genuine empathy and continuous support for patients and families throughout their clinic stay.
+            </p>
+        </div>
+
+        <!-- Slide 4: Diagnostics & Care Plan -->
+        <div class="tour-slide" style="display: none;">
+            <div style="position: relative; border-radius: 16px; overflow: hidden; height: 340px; margin-bottom: 20px; border: 1px solid rgba(197, 160, 89, 0.3);">
+                <img src="{% static 'images/service_diagnostics.jpg' %}" alt="Diagnostics" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="video-live-chip" style="top: 14px; left: 14px; background: #071911; border: 1px solid #c5a059; color: #e4ca8b;">STEP 4 / 4 &bull; DIAGNOSTICS & CARE PLAN</span>
+            </div>
+            <h3 style="font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">
+                High-Tech Diagnostics & Complete Care Plan
+            </h3>
+            <p style="font-size: 14.5px; color: #c0cfc7; line-height: 1.6;">
+                High-precision imaging and automated diagnostic lab tests integrated directly with your digital prescription schedule.
+            </p>
+        </div>
+
+        <!-- Navigation Dots -->
+        <div class="tour-dots-wrapper">
+            <span class="tour-dot active" onclick="goToTourSlide(0)"></span>
+            <span class="tour-dot" onclick="goToTourSlide(1)"></span>
+            <span class="tour-dot" onclick="goToTourSlide(2)"></span>
+            <span class="tour-dot" onclick="goToTourSlide(3)"></span>
+        </div>
+
+        <!-- Tour Footer Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(197, 160, 89, 0.25);">
+            <button type="button" class="btn btn-outline" onclick="prevTourSlide()" style="border-color: rgba(197, 160, 89, 0.4); color: #e4ca8b;">
+                <i class="fa-solid fa-chevron-left"></i> Previous
+            </button>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-outline" onclick="nextTourSlide()" style="border-color: rgba(197, 160, 89, 0.4); color: #e4ca8b;">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <a href="{% url 'create-appointment' %}" class="btn-gold-primary" style="padding: 10px 22px; font-size: 13px;">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Book Appointment</span>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/clinic_splash.js' %}?v={% now 'U' %}"></script>
+<script src="{% static 'js/clinic_video.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

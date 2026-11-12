@@ -66,8 +66,51 @@ class SignupForm(forms.ModelForm):
 
         return cleaned_data
 
+
 class LoginForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(
         widget=forms.PasswordInput
     )
+
+
+class UserProfileForm(forms.ModelForm):
+    first_name = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name', 'id': 'id_first_name'})
+    )
+    last_name = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name', 'id': 'id_last_name'})
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone_number', 'profile_picture']
+        widgets = {
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number', 'id': 'id_phone_number'}),
+            'profile_picture': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*', 'id': 'id_profile_picture'}),
+        }
+
+
+class PatientProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Patient
+        fields = [
+            'date_of_birth',
+            'gender',
+            'blood_group',
+            'address',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'blood_group': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. O+, A-'}),
+            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Residential address'}),
+            'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact person name'}),
+            'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact phone number'}),
+        }

@@ -1,0 +1,22 @@
+{% load static %}
+<div id="clinichubSplashOverlay" class="clinichub-splash-overlay {% if is_standalone %}is-standalone{% endif %}" {% if is_standalone %}data-standalone="true" data-target-url="/"{% endif %} aria-hidden="false">
+    <div class="splash-bg-ambient">
+        <div class="splash-ambient-glow"></div>
+    </div>
+    <div class="splash-logo-card">
+        <div class="splash-brand-header">
+            <span class="splash-brand-icon"><i class="fa-solid fa-staff-snake"></i></span>
+            <span class="splash-brand-title">ClinicHub</span>
+        </div>
+        <svg class="splash-ecg-path" viewBox="0 0 100 40" aria-hidden="true">
+            <path d="M0 20 L30 20 L40 5 L50 35 L60 20 L100 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="splash-tagline">Compassionate Care &bull; Smart Scheduling</p>
+        <div class="splash-progress-track">
+            <div class="splash-progress-fill" id="splashProgressFill"></div>
+        </div>
+        <button id="splashSkipBtn" class="splash-skip-btn" type="button" aria-label="Skip introduction">
+            <span>Skip</span> <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+</div>

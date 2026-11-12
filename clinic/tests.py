@@ -28,6 +28,7 @@ from .models import (
     Invoice,
     InvoiceLineItem,
     Payment,
+    Notification,
 )
 from .forms import DoctorForm
 from .services import (
@@ -3571,6 +3572,862 @@ class Phase7EmailNotificationTests(TestCase):
         self.assertEqual(sent_email.to, [self.patient_user.email])
         self.assertIn("Appointment Cancelled", sent_email.subject)
         self.assertIn("Symptoms resolved / feeling better", sent_email.body)
+
+
+class Phase7AppointmentReminderTests(TestCase):
+    """
+    Automated tests for Phase 7.3 Appointment Reminder Email system:
+    - Transactional reminder delivery with HTML & Plain-text formatting
+    - Django management command (send_appointment_reminders) with dry-run, force, and date filters
+    - Front-desk on-demand staff reminder view
+    """
+
+    def setUp(self):
+        from django.core import mail
+        mail.outbox.clear()
+
+        self.department = Department.objects.create(
+            name="Neurology",
+            description="Neurology Clinic",
+        )
+        self.doctor_user = User.objects.create_user(
+            username="dr_house",
+            email="dr.house@example.com",
+            first_name="Gregory",
+            last_name="House",
+            password="DoctorPassword123!",
+            user_type="DOCTOR",
+        )
+        self.doctor = Doctor.objects.create(
+            user=self.doctor_user,
+            department=self.department,
+            specialization="Neurologist",
+            license_number="LIC-NEU-909",
+        )
+        self.patient_user = User.objects.create_user(
+            username="reminder_patient",
+            email="patient.reminder@example.com",
+            first_name="Robert",
+            last_name="Chase",
+            password="PatientPassword123!",
+            user_type="PATIENT",
+        )
+        self.patient_user.is_email_verified = True
+        self.patient_user.save()
+        self.patient, _ = Patient.objects.get_or_create(user=self.patient_user)
+
+        self.staff_user = User.objects.create_user(
+            username="staff_reception_rem",
+            email="staff.reminders@example.com",
+            first_name="Cuddy",
+            last_name="Dean",
+            password="StaffPassword123!",
+            user_type="STAFF",
+            staff_role="RECEPTIONIST",
+        )
+        self.staff_user.is_email_verified = True
+        self.staff_user.save()
+        self.staff, _ = Staff.objects.get_or_create(
+            user=self.staff_user,
+            department=self.department,
+            designation="Chief Administrator",
+        )
+
+        self.today = timezone.localdate()
+        self.tomorrow = self.today + datetime.timedelta(days=1)
+
+    def test_send_appointment_reminder_email_direct(self):
+        """Verify direct call to send_appointment_reminder_email sends email and updates audit flags."""
+        from django.core import mail
+        from clinic.notifications import send_appointment_reminder_email
+
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.tomorrow,
+            slot_start_time=datetime.time(11, 0),
+            slot_end_time=datetime.time(11, 30),
+            time_slot="11:00 AM – 11:30 AM",
+            token_number=1,
+            reason="Migraine follow-up",
+        )
+        mail.outbox.clear()
+
+        self.assertFalse(appointment.reminder_sent)
+        self.assertIsNone(appointment.reminder_sent_at)
+
+        success = send_appointment_reminder_email(
+            appointment=appointment,
+            token=token,
+            fail_silently=False,
+            update_record=True,
+        )
+
+        self.assertTrue(success)
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, [self.patient_user.email])
+        self.assertIn("Appointment Reminder", sent.subject)
+        self.assertIn("Dr. Gregory House", sent.subject)
+        self.assertIn(f"#{token.formatted_token_number}", sent.subject)
+        self.assertIn("Migraine follow-up", sent.body)
+
+        appointment.refresh_from_db()
+        self.assertTrue(appointment.reminder_sent)
+        self.assertIsNotNone(appointment.reminder_sent_at)
+
+    def test_send_appointment_reminders_command_default_tomorrow(self):
+        """Verify the send_appointment_reminders management command scans tomorrow's appointments."""
+        from django.core import mail
+
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.tomorrow,
+            slot_start_time=datetime.time(9, 30),
+            slot_end_time=datetime.time(10, 0),
+            time_slot="09:30 AM – 10:00 AM",
+            token_number=1,
+            reason="Routine consultation",
+        )
+        mail.outbox.clear()
+
+        out = StringIO()
+        call_command("send_appointment_reminders", stdout=out)
+
+        appointment.refresh_from_db()
+        self.assertTrue(appointment.reminder_sent)
+        self.assertGreaterEqual(len(mail.outbox), 1)
+        self.assertIn("Sent: 1", out.getvalue())
+
+    def test_send_appointment_reminders_dry_run_flag(self):
+        """Verify --dry-run previews appointments without sending emails or updating records."""
+        from django.core import mail
+
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.tomorrow,
+            slot_start_time=datetime.time(14, 0),
+            slot_end_time=datetime.time(14, 30),
+            time_slot="02:00 PM – 02:30 PM",
+            token_number=2,
+            reason="Checkup",
+        )
+        mail.outbox.clear()
+
+        out = StringIO()
+        call_command("send_appointment_reminders", "--dry-run", stdout=out)
+
+        appointment.refresh_from_db()
+        self.assertFalse(appointment.reminder_sent)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertIn("DRY RUN", out.getvalue())
+        self.assertIn(f"Apt #{appointment.id}", out.getvalue())
+
+    def test_send_appointment_reminders_skips_cancelled_or_no_show(self):
+        """Verify cancelled and no-show appointments are not sent reminders."""
+        from django.core import mail
+
+        apt_cancelled, _ = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.tomorrow,
+            slot_start_time=datetime.time(15, 0),
+            slot_end_time=datetime.time(15, 30),
+            time_slot="03:00 PM – 03:30 PM",
+            token_number=3,
+        )
+        apt_cancelled.status = "CANCELLED"
+        apt_cancelled.save()
+        mail.outbox.clear()
+
+        out = StringIO()
+        call_command("send_appointment_reminders", stdout=out)
+
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertIn("Found 0 matching", out.getvalue())
+
+    def test_send_appointment_reminders_skips_already_sent_unless_forced(self):
+        """Verify appointments with reminder_sent=True are skipped unless --force is passed."""
+        from django.core import mail
+
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.tomorrow,
+            slot_start_time=datetime.time(16, 0),
+            slot_end_time=datetime.time(16, 30),
+            time_slot="04:00 PM – 04:30 PM",
+            token_number=4,
+        )
+        appointment.reminder_sent = True
+        appointment.reminder_sent_at = timezone.now()
+        appointment.save()
+        mail.outbox.clear()
+
+        out = StringIO()
+        call_command("send_appointment_reminders", stdout=out)
+        self.assertEqual(len(mail.outbox), 0)
+
+        # Now test with --force
+        call_command("send_appointment_reminders", "--force", stdout=out)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.patient_user.email])
+
+    def test_staff_send_appointment_reminder_view(self):
+        """Verify front-desk staff can manually trigger a reminder from the dashboard."""
+        from django.core import mail
+
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            slot_start_time=datetime.time(10, 0),
+            slot_end_time=datetime.time(10, 30),
+            time_slot="10:00 AM – 10:30 AM",
+            token_number=1,
+            reason="General consultation",
+        )
+        mail.outbox.clear()
+
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        res = self.client.post(
+            reverse("staff-send-appointment-reminder", args=[appointment.id]),
+            {"next": reverse("today-appointments")},
+            follow=True,
+        )
+
+        self.assertEqual(res.status_code, 200)
+        self.assertGreaterEqual(len(mail.outbox), 1)
+        sent = mail.outbox[-1]
+        self.assertEqual(sent.to, [self.patient_user.email])
+        self.assertIn("Appointment Reminder", sent.subject)
+
+        appointment.refresh_from_db()
+        self.assertTrue(appointment.reminder_sent)
+        self.assertIsNotNone(appointment.reminder_sent_at)
+
+
+class Phase7InAppNotificationTests(TestCase):
+    """
+    Automated integration tests for Phase 7.4 In-App Notification System:
+    - Notification model, mark_as_read(), icon/badge properties
+    - Global template context processor (unread_notifications_count & recent_notifications)
+    - Dedicated Notification Center view (notification_list_view) & filters
+    - Mark as read & mark all as read endpoints (standard & AJAX)
+    - Lightweight badge polling API endpoint (api_unread_notifications_count)
+    - Event triggers on appointment booking, reception check-in, and doctor token calling
+    """
+
+    def setUp(self):
+        self.patient_user = User.objects.create_user(
+            username="notif_patient",
+            email="notif.patient@example.com",
+            first_name="Diana",
+            last_name="Prince",
+            password="SecurePassword123!",
+            user_type="PATIENT",
+        )
+        self.patient_user.is_email_verified = True
+        self.patient_user.save()
+        self.patient, _ = Patient.objects.get_or_create(user=self.patient_user)
+
+        self.department = Department.objects.create(name="Cardiology", description="Heart Clinic")
+        self.doctor_user = User.objects.create_user(
+            username="notif_doctor",
+            email="notif.doctor@example.com",
+            first_name="Bruce",
+            last_name="Wayne",
+            password="DoctorPassword123!",
+            user_type="DOCTOR",
+        )
+        self.doctor = Doctor.objects.create(
+            user=self.doctor_user,
+            department=self.department,
+            specialization="Cardiologist",
+            license_number="LIC-NOTIF-001",
+        )
+
+        self.staff_user = User.objects.create_user(
+            username="notif_staff",
+            email="notif.staff@example.com",
+            first_name="Alfred",
+            last_name="Pennyworth",
+            password="StaffPassword123!",
+            user_type="STAFF",
+            staff_role="RECEPTIONIST",
+        )
+        self.staff, _ = Staff.objects.get_or_create(
+            user=self.staff_user,
+            department=self.department,
+            designation="Front Desk",
+        )
+
+        self.today = timezone.localdate()
+
+    def test_notification_model_lifecycle(self):
+        """Verify Notification creation, mark_as_read(), and computed properties."""
+        notif = Notification.objects.create(
+            recipient=self.patient_user,
+            title="Prescription Ready",
+            message="Your cardiologist has prescribed new medication.",
+            notification_type="PRESCRIPTION",
+            level="SUCCESS",
+            link="/clinic/patient/prescriptions/",
+        )
+        self.assertFalse(notif.is_read)
+        self.assertIsNone(notif.read_at)
+        self.assertEqual(notif.icon_class, "fa-solid fa-file-prescription")
+        self.assertEqual(notif.badge_color, "#16a34a")
+
+        notif.mark_as_read()
+        self.assertTrue(notif.is_read)
+        self.assertIsNotNone(notif.read_at)
+
+    def test_notification_context_processor(self):
+        """Verify global context processor supplies unread count and recent notifications."""
+        from django.test import RequestFactory
+        from clinic.context_processors import notification_context
+        from django.contrib.auth.models import AnonymousUser
+
+        factory = RequestFactory()
+
+        # Anonymous user
+        req_anon = factory.get("/")
+        req_anon.user = AnonymousUser()
+        ctx_anon = notification_context(req_anon)
+        self.assertEqual(ctx_anon["unread_notifications_count"], 0)
+        self.assertEqual(ctx_anon["recent_notifications"], [])
+
+        # Authenticated user with notifications
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Bill Generated",
+            message="Consultation invoice ready.",
+            notification_type="BILLING",
+            is_read=False,
+        )
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Appointment Confirmed",
+            message="Your visit is booked.",
+            notification_type="APPOINTMENT",
+            is_read=False,
+        )
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Welcome",
+            message="Welcome to ClinicHub.",
+            notification_type="SYSTEM",
+            is_read=True,
+        )
+
+        req_auth = factory.get("/")
+        req_auth.user = self.patient_user
+        ctx_auth = notification_context(req_auth)
+
+        self.assertEqual(ctx_auth["unread_notifications_count"], 2)
+        self.assertEqual(len(ctx_auth["recent_notifications"]), 3)
+
+    def test_notification_list_view_and_filtering(self):
+        """Verify Notification Center view, unread status filter, and search filter."""
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Appointment Confirmed",
+            message="See Dr. Wayne tomorrow.",
+            notification_type="APPOINTMENT",
+            is_read=False,
+        )
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Invoice Due",
+            message="Consultation bill is pending.",
+            notification_type="BILLING",
+            is_read=True,
+        )
+
+        self.client.login(email=self.patient_user.email, password="SecurePassword123!")
+
+        # Test all
+        res = self.client.get(reverse("notification-list"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Notification Center")
+        self.assertContains(res, "Appointment Confirmed")
+        self.assertContains(res, "Invoice Due")
+
+        # Test unread filter
+        res_unread = self.client.get(reverse("notification-list") + "?status=unread")
+        self.assertEqual(res_unread.status_code, 200)
+        unread_titles = [n.title for n in res_unread.context["notifications"]]
+        self.assertIn("Appointment Confirmed", unread_titles)
+        self.assertNotIn("Invoice Due", unread_titles)
+
+        # Test search query
+        res_search = self.client.get(reverse("notification-list") + "?q=Consultation")
+        self.assertEqual(res_search.status_code, 200)
+        self.assertContains(res_search, "Invoice Due")
+
+    def test_mark_notification_as_read_view(self):
+        """Verify mark single notification read endpoint with destination redirect & AJAX."""
+        notif = Notification.objects.create(
+            recipient=self.patient_user,
+            title="View Lab Orders",
+            message="Lab test ordered.",
+            notification_type="LAB_TEST",
+            link="/clinic/my-appointments/",
+            is_read=False,
+        )
+
+        self.client.login(email=self.patient_user.email, password="SecurePassword123!")
+
+        # Test redirect to notification link
+        res = self.client.get(reverse("mark-notification-read", args=[notif.id]))
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, "/clinic/my-appointments/")
+
+        notif.refresh_from_db()
+        self.assertTrue(notif.is_read)
+
+        # Test AJAX endpoint
+        notif2 = Notification.objects.create(
+            recipient=self.patient_user,
+            title="Another notification",
+            message="Message content",
+            is_read=False,
+        )
+        res_ajax = self.client.get(
+            reverse("mark-notification-read", args=[notif2.id]),
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+        self.assertEqual(res_ajax.status_code, 200)
+        json_data = res_ajax.json()
+        self.assertTrue(json_data["success"])
+        self.assertEqual(json_data["unread_count"], 0)
+
+    def test_mark_all_notifications_as_read_view(self):
+        """Verify marking all user notifications as read."""
+        for i in range(4):
+            Notification.objects.create(
+                recipient=self.patient_user,
+                title=f"Notification #{i}",
+                message="Sample alert",
+                is_read=False,
+            )
+
+        self.client.login(email=self.patient_user.email, password="SecurePassword123!")
+        res = self.client.post(reverse("mark-all-notifications-read"), follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "All notifications have been marked as read.")
+
+        unread = Notification.objects.filter(recipient=self.patient_user, is_read=False).count()
+        self.assertEqual(unread, 0)
+
+    def test_api_unread_notifications_count(self):
+        """Verify lightweight polling API returns unread counter and serialized recent items."""
+        Notification.objects.create(
+            recipient=self.patient_user,
+            title="Rx Update",
+            message="Dosage modified",
+            notification_type="PRESCRIPTION",
+            level="WARNING",
+            is_read=False,
+        )
+
+        self.client.login(email=self.patient_user.email, password="SecurePassword123!")
+        res = self.client.get(reverse("api-notifications-poll"))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["unread_count"], 1)
+        self.assertEqual(len(data["notifications"]), 1)
+        self.assertEqual(data["notifications"][0]["title"], "Rx Update")
+        self.assertEqual(data["notifications"][0]["type"], "PRESCRIPTION")
+
+    def test_event_hooks_create_in_app_notifications(self):
+        """Verify booking, check-in, and call-next operations trigger persistent notifications."""
+        from django.core import mail
+        mail.outbox.clear()
+
+        # 1. Booking triggers notifications for patient and doctor
+        appointment, token = book_slot_appointment(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            slot_start_time=datetime.time(11, 0),
+            slot_end_time=datetime.time(11, 30),
+            time_slot="11:00 AM – 11:30 AM",
+            token_number=1,
+            reason="Chest check",
+        )
+
+        patient_notifs = Notification.objects.filter(recipient=self.patient_user)
+        doctor_notifs = Notification.objects.filter(recipient=self.doctor_user)
+        self.assertTrue(patient_notifs.filter(notification_type="APPOINTMENT").exists())
+        self.assertTrue(doctor_notifs.filter(notification_type="APPOINTMENT").exists())
+
+        # 2. Reception check-in notifies the doctor
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        self.client.post(reverse("check-in-patient", args=[appointment.id]))
+
+        doc_queue_notifs = Notification.objects.filter(recipient=self.doctor_user, notification_type="QUEUE")
+        self.assertTrue(doc_queue_notifs.exists())
+
+        # 3. Doctor calls next patient notifies the patient
+        from clinic.services import call_next_patient_for_doctor
+        call_next_patient_for_doctor(self.doctor)
+
+        patient_called_notifs = Notification.objects.filter(recipient=self.patient_user, notification_type="QUEUE")
+        self.assertTrue(patient_called_notifs.exists())
+
+
+# ========================================================
+# PHASE 7.6: REAL-TIME QUEUE UPDATES TESTS
+# ========================================================
+
+class Phase7RealTimeQueueTests(TestCase):
+    """
+    Automated test suite for Phase 7.6: Real-time Queue Updates:
+    - Live queue snapshot service calculation
+    - Real-time JSON API endpoint (/clinic/api/queue/live/)
+    - Public TV Waiting Room Board view & template
+    - Token lifecycle transitions reflected in live queue state
+    - Channel broadcast safety execution
+    """
+
+    def setUp(self):
+        self.today = timezone.localdate()
+
+        self.department = Department.objects.create(
+            name="Diagnostics",
+            is_active=True,
+        )
+
+        # Users
+        self.patient_user = User.objects.create_user(
+            username="live_patient",
+            email="livepatient@test.com",
+            first_name="Alice",
+            last_name="Wonder",
+            password="SecurePassword123!",
+            user_type="PATIENT",
+        )
+        self.patient = Patient.objects.get(user=self.patient_user)
+
+        self.patient2_user = User.objects.create_user(
+            username="live_patient2",
+            email="livepatient2@test.com",
+            first_name="Bob",
+            last_name="Builder",
+            password="SecurePassword123!",
+            user_type="PATIENT",
+        )
+        self.patient2 = Patient.objects.get(user=self.patient2_user)
+
+        self.doctor_user = User.objects.create_user(
+            username="live_doctor",
+            email="livedoctor@test.com",
+            first_name="Gregory",
+            last_name="House",
+            password="DoctorPassword123!",
+            user_type="DOCTOR",
+        )
+        self.doctor = Doctor.objects.create(
+            user=self.doctor_user,
+            department=self.department,
+            license_number="LIC-LIVE-001",
+            specialization="Diagnostic Medicine",
+            is_active=True,
+        )
+
+        self.staff_user = User.objects.create_user(
+            username="live_staff",
+            email="livestaff@test.com",
+            first_name="Cuddy",
+            last_name="Dean",
+            password="StaffPassword123!",
+            user_type="STAFF",
+            staff_role="RECEPTIONIST",
+        )
+        self.staff = Staff.objects.create(
+            user=self.staff_user,
+            department=self.department,
+            designation="Chief Administrator",
+        )
+
+    def test_get_live_queue_snapshot_structure(self):
+        """Verify get_live_queue_snapshot computes accurate now_serving, waiting_queues, and statistics."""
+        # 1. Appointment in consultation / called
+        apt1 = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(9, 0),
+            time_slot="09:00 AM - 09:30 AM",
+            status="IN_CONSULTATION",
+        )
+        tok1 = Token.objects.create(
+            appointment=apt1,
+            doctor=self.doctor,
+            token_number=1,
+            token_date=self.today,
+            status="CALLED",
+            checked_in_at=timezone.now(),
+        )
+
+        # 2. Appointment waiting
+        apt2 = Appointment.objects.create(
+            patient=self.patient2,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(9, 30),
+            time_slot="09:30 AM - 10:00 AM",
+            status="CHECKED_IN",
+        )
+        tok2 = Token.objects.create(
+            appointment=apt2,
+            doctor=self.doctor,
+            token_number=2,
+            token_date=self.today,
+            status="WAITING",
+            checked_in_at=timezone.now(),
+        )
+
+        from clinic.services import get_live_queue_snapshot
+        snapshot = get_live_queue_snapshot(self.today)
+
+        # Assert now_serving
+        self.assertEqual(len(snapshot["now_serving"]), 1)
+        self.assertEqual(snapshot["now_serving"][0]["token_number"], 1)
+        self.assertEqual(snapshot["now_serving"][0]["formatted_token"], "#001")
+        self.assertIn("Alice Wonder", snapshot["now_serving"][0]["patient_name"])
+        self.assertIn("Dr. Gregory House", snapshot["now_serving"][0]["doctor_name"])
+
+        # Assert waiting
+        self.assertEqual(len(snapshot["all_waiting"]), 1)
+        self.assertEqual(snapshot["all_waiting"][0]["token_number"], 2)
+        self.assertEqual(snapshot["all_waiting"][0]["formatted_token"], "#002")
+
+        # Assert waiting_queues grouped by doctor
+        self.assertEqual(len(snapshot["waiting_queues"]), 1)
+        self.assertEqual(snapshot["waiting_queues"][0]["waiting_count"], 1)
+
+        # Assert stats
+        self.assertEqual(snapshot["stats"]["now_serving_count"], 1)
+        self.assertEqual(snapshot["stats"]["waiting_count"], 1)
+        self.assertEqual(snapshot["stats"]["total_today"], 2)
+        self.assertIn("server_time", snapshot)
+        self.assertIn("timestamp", snapshot)
+
+    def test_api_live_queue_endpoint(self):
+        """Verify /clinic/api/queue/live/ returns clean JSON with correct structure."""
+        res = self.client.get(reverse("api-live-queue"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res["Content-Type"], "application/json")
+
+        data = res.json()
+        self.assertIn("now_serving", data)
+        self.assertIn("waiting_queues", data)
+        self.assertIn("all_waiting", data)
+        self.assertIn("stats", data)
+        self.assertIn("server_time", data)
+        self.assertIn("timestamp", data)
+
+    def test_live_queue_display_view(self):
+        """Verify /clinic/queue/live/ renders the waiting room TV display board."""
+        res = self.client.get(reverse("live-queue-display"))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "clinic/queue_live_display.html")
+        self.assertIn("snapshot", res.context)
+        self.assertIn("snapshot_json", res.context)
+        self.assertContains(res, "Waiting Room TV Display Board")
+        self.assertContains(res, "Now Calling / In Consultation")
+        self.assertContains(res, "Next in Line / Waiting Queue")
+
+    def test_doctor_call_next_updates_live_queue_snapshot(self):
+        """Verify calling next patient immediately updates now_serving and waiting counts."""
+        apt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(10, 0),
+            time_slot="10:00 AM - 10:30 AM",
+            status="CHECKED_IN",
+        )
+        tok = Token.objects.create(
+            appointment=apt,
+            doctor=self.doctor,
+            token_number=10,
+            token_date=self.today,
+            status="WAITING",
+            checked_in_at=timezone.now(),
+        )
+
+        from clinic.services import get_live_queue_snapshot, call_next_patient_for_doctor
+        # Before calling
+        snap_before = get_live_queue_snapshot(self.today)
+        self.assertEqual(snap_before["stats"]["waiting_count"], 1)
+        self.assertEqual(snap_before["stats"]["now_serving_count"], 0)
+
+        # Call next patient
+        next_tok, next_apt = call_next_patient_for_doctor(self.doctor)
+        self.assertEqual(next_tok.id, tok.id)
+        self.assertEqual(next_tok.status, "CALLED")
+        self.assertEqual(next_apt.status, "IN_CONSULTATION")
+
+        # After calling
+        snap_after = get_live_queue_snapshot(self.today)
+        self.assertEqual(snap_after["stats"]["waiting_count"], 0)
+        self.assertEqual(snap_after["stats"]["now_serving_count"], 1)
+        self.assertEqual(snap_after["now_serving"][0]["token_number"], 10)
+
+    def test_broadcast_queue_update_layer(self):
+        """Verify broadcast_queue_update executes safely with the configured channel layer."""
+        from clinic.services import broadcast_queue_update
+        # Must execute without throwing exceptions
+        try:
+            broadcast_queue_update()
+            broadcast_success = True
+        except Exception:
+            broadcast_success = False
+        self.assertTrue(broadcast_success)
+
+    def test_queue_page_includes_tv_board_button_and_live_indicator(self):
+        """Verify receptionist / doctor queue view includes the Public TV Board button and live sync indicator."""
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        res = self.client.get(reverse("queue"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, reverse("live-queue-display"))
+    def test_receptionist_can_call_next_patient(self):
+        """Verify receptionist / staff can call next patient for any doctor passing doctor_id."""
+        apt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(11, 0),
+            status="CHECKED_IN",
+        )
+        tok = Token.objects.create(
+            appointment=apt,
+            doctor=self.doctor,
+            token_number=7,
+            token_date=self.today,
+            status="WAITING",
+            checked_in_at=timezone.now(),
+        )
+
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        res = self.client.post(
+            reverse("call-next-patient"),
+            {"doctor_id": self.doctor.id},
+            follow=True,
+        )
+        self.assertEqual(res.status_code, 200)
+
+        tok.refresh_from_db()
+        apt.refresh_from_db()
+        self.assertEqual(tok.status, "CALLED")
+        self.assertEqual(apt.status, "IN_CONSULTATION")
+
+    def test_receptionist_can_update_current_patient_status_complete(self):
+        """Verify receptionist can mark active in-consultation patient as Completed."""
+        apt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(11, 30),
+            status="IN_CONSULTATION",
+        )
+        tok = Token.objects.create(
+            appointment=apt,
+            doctor=self.doctor,
+            token_number=8,
+            token_date=self.today,
+            status="CALLED",
+            checked_in_at=timezone.now(),
+        )
+
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        res = self.client.post(
+            reverse("queue-update-patient-status", args=[apt.id]),
+            {"action": "complete"},
+            follow=True,
+        )
+        self.assertEqual(res.status_code, 200)
+
+        tok.refresh_from_db()
+        apt.refresh_from_db()
+        self.assertEqual(tok.status, "COMPLETED")
+        self.assertEqual(apt.status, "COMPLETED")
+
+    def test_receptionist_can_update_current_patient_status_no_show_and_recall(self):
+        """Verify receptionist can mark active in-consultation patient as No-Show or Re-Call."""
+        apt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(12, 0),
+            status="IN_CONSULTATION",
+        )
+        tok = Token.objects.create(
+            appointment=apt,
+            doctor=self.doctor,
+            token_number=9,
+            token_date=self.today,
+            status="CALLED",
+            checked_in_at=timezone.now(),
+        )
+
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        # 1. Test Re-call
+        res_recall = self.client.post(
+            reverse("queue-update-patient-status", args=[apt.id]),
+            {"action": "recall"},
+            follow=True,
+        )
+        self.assertEqual(res_recall.status_code, 200)
+        self.assertContains(res_recall, "Re-called Token #009")
+
+        # 2. Test No-Show
+        res_noshow = self.client.post(
+            reverse("queue-update-patient-status", args=[apt.id]),
+            {"action": "no_show"},
+            follow=True,
+        )
+        self.assertEqual(res_noshow.status_code, 200)
+        tok.refresh_from_db()
+        apt.refresh_from_db()
+        self.assertEqual(tok.status, "CANCELLED")
+        self.assertEqual(apt.status, "NO_SHOW")
+
+    def test_receptionist_queue_view_displays_current_patient_banner(self):
+        """Verify queue view renders current patient banner and update action buttons."""
+        apt = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment_date=self.today,
+            appointment_time=datetime.time(12, 30),
+            status="IN_CONSULTATION",
+        )
+        tok = Token.objects.create(
+            appointment=apt,
+            doctor=self.doctor,
+            token_number=15,
+            token_date=self.today,
+            status="CALLED",
+            checked_in_at=timezone.now(),
+        )
+
+        self.client.login(email=self.staff_user.email, password="StaffPassword123!")
+        res = self.client.get(reverse("queue"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "#015")
+        self.assertContains(res, "Current Patient")
+        self.assertContains(res, "Mark Completed")
+        self.assertContains(res, "Re-Call")
+        self.assertContains(res, "No-Show")
+        self.assertContains(res, "Call Next")
+
+
 
 
 

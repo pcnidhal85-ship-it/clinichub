@@ -1,9 +1,10 @@
-from django.shortcuts import render,redirect
-from .forms import SignupForm,LoginForm
-from django.core.signing import TimestampSigner,BadSignature,SignatureExpired
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import SignupForm, LoginForm, UserProfileForm, PatientProfileUpdateForm
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 from django.core.mail import send_mail
 from .models import User
-from django.contrib.auth import authenticate,login,logout
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.conf import settings
@@ -12,11 +13,26 @@ from clinic.models import Patient
 
 
 
-signer = TimestampSigner()
-@login_required()
-def home(request):
-    return render(request, 'users/home.html')
+from ClinicHub.ratelimit import ratelimit, reset_rate_limit
+from clinic.audit import log_audit_event
 
+signer = TimestampSigner()
+
+def splash_intro(request):
+    return render(request, 'users/splash.html', {'is_standalone': True})
+
+
+def home(request):
+    from clinic.models import Department, Doctor
+    departments = Department.objects.filter(is_active=True, is_deleted=False).order_by('name')
+    doctors = Doctor.objects.filter(is_active=True, is_deleted=False).select_related('user', 'department').order_by('user__first_name')
+    return render(request, 'users/home.html', {
+        'departments': departments,
+        'doctors': doctors,
+    })
+
+
+@ratelimit(group='signup', rate='10/h', key='ip', methods=['POST'], block=True)
 def signup(request):
     if request.method == 'POST':
         form = SignupForm(request.POST)
@@ -69,6 +85,13 @@ def signup(request):
                 recipient_list=[user.email],
             )
 
+            log_audit_event(
+                request=request,
+                actor=user,
+                action="PATIENT_REGISTER",
+                target_object=user,
+                description=f"Patient {user.email} registered",
+            )
             return redirect('verification-sent')
 
     else:
@@ -80,6 +103,7 @@ def signup(request):
         {'form': form}
     )
 
+@ratelimit(group='user_login', rate='5/m', key='ip', methods=['POST'], block=True)
 def user_login(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -97,6 +121,14 @@ def user_login(request):
                         }
                     )
                 login(request, user)
+                reset_rate_limit(request, group='user_login', key_type='ip')
+                log_audit_event(
+                    request=request,
+                    actor=user,
+                    action="LOGIN",
+                    description=f"User {user.email} ({user.user_type}) logged in successfully",
+                    extra_data={"user_type": user.user_type},
+                )
 
                 # Ensure superusers have ADMIN user_type if unset
                 if user.is_superuser and not user.user_type:
@@ -139,6 +171,13 @@ def user_login(request):
 
                 return redirect('home')
             else:
+                log_audit_event(
+                    request=request,
+                    actor=None,
+                    action="LOGIN_FAILED",
+                    description=f"Failed login attempt for {email_value}",
+                    extra_data={"attempted_email": email_value},
+                )
                 return render(request,'users/login.html',
                     {
                         'form': form,
@@ -152,6 +191,13 @@ def user_login(request):
 
 
 def user_logout(request):
+    if request.user.is_authenticated:
+        log_audit_event(
+            request=request,
+            actor=request.user,
+            action="LOGOUT",
+            description=f"User {request.user.email} logged out",
+        )
     logout(request)
 
     return redirect('login')
@@ -169,5 +215,57 @@ def verify_email(request, token):
 
     except (BadSignature, SignatureExpired):
         return render(request, 'users/verification_failed.html')
+
+
+@login_required
+def user_profile(request):
+    user = request.user
+    patient_profile = None
+    patient_form = None
+
+    if user.user_type == "PATIENT":
+        patient_profile, _ = Patient.objects.get_or_create(
+            user=user,
+            defaults={"is_active": True, "is_deleted": False}
+        )
+
+    if request.method == "POST":
+        # Check if user requested removing avatar
+        if request.POST.get("remove_avatar") == "1":
+            if user.profile_picture:
+                user.profile_picture.delete(save=False)
+                user.profile_picture = None
+                user.save(update_fields=["profile_picture"])
+                messages.success(request, "Profile picture removed successfully.")
+                return redirect("user-profile")
+
+        user_form = UserProfileForm(request.POST, request.FILES, instance=user)
+        if patient_profile:
+            patient_form = PatientProfileUpdateForm(request.POST, instance=patient_profile)
+
+        is_valid = user_form.is_valid()
+        if patient_form:
+            is_valid = is_valid and patient_form.is_valid()
+
+        if is_valid:
+            user_form.save()
+            if patient_form:
+                patient_form.save()
+            messages.success(request, "Your profile has been updated successfully!")
+            return redirect("user-profile")
+        else:
+            messages.error(request, "Please correct the errors indicated below.")
+    else:
+        user_form = UserProfileForm(instance=user)
+        if patient_profile:
+            patient_form = PatientProfileUpdateForm(instance=patient_profile)
+
+    context = {
+        "user_form": user_form,
+        "patient_form": patient_form,
+        "patient_profile": patient_profile,
+    }
+    return render(request, "users/profile.html", context)
+
 
 

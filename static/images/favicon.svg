@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5e2b3"/>
+      <stop offset="50%" stop-color="#c5a059"/>
+      <stop offset="100%" stop-color="#9e7a35"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b2e20"/>
+      <stop offset="100%" stop-color="#04150e"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#emeraldGrad)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="url(#goldGrad)" stroke-width="2" opacity="0.8"/>
+  <path d="M26 14 H38 V26 H50 V38 H38 V50 H26 V38 H14 V26 H26 Z" fill="url(#goldGrad)"/>
+  <path d="M22 32 H28 L30 26 L34 38 L36 30 L38 34 H42" fill="none" stroke="#04150e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

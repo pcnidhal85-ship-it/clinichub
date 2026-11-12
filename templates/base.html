@@ -1,116 +1,417 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{% block title %}ClinicHub — Modern Healthcare Management{% endblock %}</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'images/favicon.svg' %}">
+
+    <!-- Early Theme Loader Script (Avoids Flash of Unstyled Theme) -->
+    <script>
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem('clinichub_theme');
+                if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Font Awesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Global Design System CSS -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v={% now 'U' %}">
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+
+    <!-- 8.6 Accessibility: Skip to Content Link -->
+    <a href="#mainContent" class="skip-to-content">Skip to main content</a>
 
     <!-- Header / Navbar -->
-    <header class="header-navbar">
+    <header class="header-navbar {% block header_class %}{% endblock %}" id="mainHeaderNavbar">
         <div class="nav-container">
-            <a href="{% url 'home' %}" class="brand-logo" title="ClinicHub Home">
-                <span class="brand-icon-wrapper">
+            <!-- Brand Logo -->
+            <a href="{% url 'home' %}" class="brand-logo" title="ClinicHub Home" aria-label="ClinicHub Home">
+                <span class="brand-icon-wrapper" aria-hidden="true">
                     <i class="fa-solid fa-staff-snake"></i>
                 </span>
                 <span>ClinicHub</span>
             </a>
 
-            <nav>
+            <!-- Desktop Navigation Menu -->
+            <nav aria-label="Primary Navigation">
                 <ul class="nav-menu">
                     {% if user.is_authenticated %}
                         {% if user.user_type == "PATIENT" %}
-                            <li><a href="{% url 'patient-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span></a></li>
-                            <li><a href="{% url 'create-appointment' %}" class="nav-link"><i class="fa-regular fa-calendar-plus"></i> <span>Book Visit</span></a></li>
-                            <li><a href="{% url 'my-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-days"></i> <span>Appointments</span></a></li>
-                            <li><a href="{% url 'patient-prescriptions' %}" class="nav-link"><i class="fa-solid fa-file-prescription"></i> <span>Prescriptions</span></a></li>
-                            <li><a href="{% url 'patient-billing-history' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
-                            <li><span class="user-badge user-badge-patient"><i class="fa-regular fa-user"></i> Patient</span></li>
+                            <li><a href="{% url 'patient-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> <span>Dashboard</span></a></li>
+                            <li><a href="{% url 'create-appointment' %}" class="nav-link"><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i> <span>Book Visit</span></a></li>
+                            <li><a href="{% url 'my-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> <span>Appointments</span></a></li>
+                            <li><a href="{% url 'patient-prescriptions' %}" class="nav-link"><i class="fa-solid fa-file-prescription" aria-hidden="true"></i> <span>Prescriptions</span></a></li>
+                            <li><a href="{% url 'patient-billing-history' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing</span></a></li>
+                            <li><span class="user-badge user-badge-patient"><i class="fa-regular fa-user" aria-hidden="true"></i> Patient</span></li>
                         {% elif user.user_type == "STAFF" %}
-                            <li><a href="{% url 'staff-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span></a></li>
-                            <li><a href="{% url 'today-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-check"></i> <span>Reception</span></a></li>
-                            <li><a href="{% url 'queue' %}" class="nav-link"><i class="fa-solid fa-users-line"></i> <span>Waiting Queue</span></a></li>
-                            <li><a href="{% url 'staff-patient-search' %}" class="nav-link"><i class="fa-solid fa-magnifying-glass"></i> <span>Patients</span></a></li>
-                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
-                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Labs</span></a></li>
-                            <li><span class="user-badge user-badge-staff"><i class="fa-solid fa-id-badge"></i> {{ user.get_staff_role_display|default:"Clinic Staff" }}</span></li>
+                            <li><a href="{% url 'staff-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> <span>Dashboard</span></a></li>
+                            <li><a href="{% url 'today-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> <span>Reception</span></a></li>
+                            <li><a href="{% url 'queue' %}" class="nav-link"><i class="fa-solid fa-users-line" aria-hidden="true"></i> <span>Waiting Queue</span></a></li>
+                            <li><a href="{% url 'staff-patient-search' %}" class="nav-link"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> <span>Patients</span></a></li>
+                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Labs</span></a></li>
+                            <li><span class="user-badge user-badge-staff"><i class="fa-solid fa-id-badge" aria-hidden="true"></i> {{ user.get_staff_role_display|default:"Clinic Staff" }}</span></li>
                         {% elif user.user_type == "DOCTOR" %}
-                            <li><a href="{% url 'doctor-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-line"></i> <span>Care Portal</span></a></li>
-                            <li><a href="{% url 'doctor-appointments' %}" class="nav-link"><i class="fa-solid fa-stethoscope"></i> <span>Appointments</span></a></li>
-                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Lab Tests</span></a></li>
-                            <li><a href="{% url 'doctor-availability' %}" class="nav-link"><i class="fa-regular fa-clock"></i> <span>My Schedule</span></a></li>
-                            <li><span class="user-badge user-badge-doctor"><i class="fa-solid fa-user-doctor"></i> Dr. {{ user.first_name|cut:"Dr. "|cut:"Dr." }} {{ user.last_name }}{% if user.doctor_profile.department %} ({{ user.doctor_profile.department.name }}){% elif user.doctor_role %} ({{ user.get_doctor_role_display }}){% endif %}</span></li>
+                            <li><a href="{% url 'doctor-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Care Portal</span></a></li>
+                            <li><a href="{% url 'doctor-appointments' %}" class="nav-link"><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> <span>Appointments</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Lab Tests</span></a></li>
+                            <li><a href="{% url 'doctor-availability' %}" class="nav-link"><i class="fa-regular fa-clock" aria-hidden="true"></i> <span>My Schedule</span></a></li>
+                            <li><span class="user-badge user-badge-doctor"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> Dr. {{ user.first_name|cut:"Dr. "|cut:"Dr." }} {{ user.last_name }}{% if user.doctor_profile.department %} ({{ user.doctor_profile.department.name }}){% elif user.doctor_role %} ({{ user.get_doctor_role_display }}){% endif %}</span></li>
                         {% elif user.user_type == "ADMIN" or user.is_superuser %}
-                            <li><a href="{% url 'admin-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high"></i> <span>Command Center</span></a></li>
-                            <li><a href="{% url 'admin-doctors' %}" class="nav-link"><i class="fa-solid fa-user-doctor"></i> <span>Doctors</span></a></li>
-                            <li><a href="{% url 'admin-staff' %}" class="nav-link"><i class="fa-solid fa-users-gear"></i> <span>Staff</span></a></li>
-                            <li><a href="{% url 'admin-departments' %}" class="nav-link"><i class="fa-solid fa-hospital"></i> <span>Departments</span></a></li>
-                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Billing</span></a></li>
-                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial"></i> <span>Labs</span></a></li>
-                            <li><a href="{% url 'admin-reports' %}" class="nav-link"><i class="fa-solid fa-chart-pie"></i> <span>Reports</span></a></li>
-                            <li><span class="user-badge user-badge-admin"><i class="fa-solid fa-crown"></i> Admin</span></li>
+                            <li><a href="{% url 'admin-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> <span>Command Center</span></a></li>
+                            <li><a href="{% url 'admin-doctors' %}" class="nav-link"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <span>Doctors</span></a></li>
+                            <li><a href="{% url 'admin-staff' %}" class="nav-link"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> <span>Staff</span></a></li>
+                            <li><a href="{% url 'admin-departments' %}" class="nav-link"><i class="fa-solid fa-hospital" aria-hidden="true"></i> <span>Departments</span></a></li>
+                            <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing</span></a></li>
+                            <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Labs</span></a></li>
+                            <li><a href="{% url 'admin-reports' %}" class="nav-link"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> <span>Reports</span></a></li>
+                            <li><span class="user-badge user-badge-admin"><i class="fa-solid fa-crown" aria-hidden="true"></i> Admin</span></li>
                         {% endif %}
 
-                        <li class="nav-actions">
-                            <span style="font-size: 13.5px; color: var(--text-secondary); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fa-regular fa-circle-user" style="color: var(--primary);"></i>
-                                {{ user.first_name|default:user.username }}
-                            </span>
-                            <a href="{% url 'logout' %}" class="btn btn-outline btn-sm">
-                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                                <span>Log Out</span>
-                            </a>
+                        <!-- Theme Toggle Button -->
+                        <li>
+                            <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark/light theme" title="Toggle theme">
+                                <i class="fa-solid fa-moon theme-icon" aria-hidden="true"></i>
+                            </button>
+                        </li>
+
+                        <!-- Notification Bell Component -->
+                        <li class="notification-bell-wrapper">
+                            <button type="button" class="notification-bell-btn" id="notificationBellBtn" aria-label="Notifications" title="Notifications" aria-expanded="false">
+                                <i class="fa-regular fa-bell" aria-hidden="true"></i>
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="notification-badge-count" id="notificationBadge">
+                                        {% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}
+                                    </span>
+                                {% endif %}
+                            </button>
+
+                            <!-- Notification Dropdown Menu -->
+                            <div class="notification-dropdown-menu" id="notificationDropdown" role="dialog" aria-label="Recent notifications">
+                                <div class="notification-dropdown-header">
+                                    <span class="notification-dropdown-title">
+                                        <i class="fa-solid fa-bell" style="color: var(--primary);" aria-hidden="true"></i>
+                                        <span>Notifications</span>
+                                    </span>
+                                    {% if unread_notifications_count > 0 %}
+                                        <form method="post" action="{% url 'mark-all-notifications-read' %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="notification-dropdown-mark-all">
+                                                <i class="fa-solid fa-check-double" aria-hidden="true"></i> Mark all read
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+
+                                <ul class="notification-dropdown-list" id="notificationList">
+                                    {% if recent_notifications %}
+                                        {% for notif in recent_notifications %}
+                                            <li>
+                                                <a href="{% if notif.link %}{% url 'mark-notification-read' notif.id %}{% else %}#{% endif %}" class="notification-dropdown-item {% if not notif.is_read %}unread{% endif %}">
+                                                    <span class="notification-item-icon" style="background-color: {% if notif.level == 'SUCCESS' %}var(--accent-light); color: var(--accent);{% elif notif.level == 'WARNING' %}var(--warning-light); color: var(--warning);{% elif notif.level == 'DANGER' %}var(--danger-light); color: var(--danger);{% else %}var(--info-light); color: var(--info);{% endif %}">
+                                                        <i class="{{ notif.icon_class }}" aria-hidden="true"></i>
+                                                    </span>
+                                                    <div style="flex: 1; min-width: 0;">
+                                                        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 6px;">
+                                                            <strong style="font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                                {{ notif.title }}
+                                                            </strong>
+                                                            {% if not notif.is_read %}
+                                                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); flex-shrink: 0;" aria-label="Unread"></span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <p style="margin: 2px 0 4px 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                            {{ notif.message }}
+                                                        </p>
+                                                        <span style="font-size: 10.5px; color: var(--text-muted);">
+                                                            {{ notif.created_at|timesince }} ago
+                                                        </span>
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        {% endfor %}
+                                    {% else %}
+                                        <li style="padding: 30px 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                                            <i class="fa-regular fa-bell-slash" style="font-size: 24px; color: var(--text-muted); display: block; margin-bottom: 8px;" aria-hidden="true"></i>
+                                            No notifications yet
+                                        </li>
+                                    {% endif %}
+                                </ul>
+
+                                <div class="notification-dropdown-footer">
+                                    <a href="{% url 'notification-list' %}">
+                                        <span>View all notifications</span>
+                                        <i class="fa-solid fa-arrow-right" style="font-size: 11px;" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </li>
+
+                        <!-- Profile Dropdown Component (Log Out moved into Profile) -->
+                        <li class="nav-profile-wrapper" style="position: relative;">
+                            <button type="button" class="nav-profile-chip" id="userProfileDropdownBtn" aria-label="User profile and settings" aria-expanded="false" style="cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-alt); font-family: inherit;">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.get_avatar_url }}" alt="{{ user.get_full_name }}" class="avatar-img avatar-sm">
+                                {% else %}
+                                    <span class="avatar-initials avatar-sm">{{ user.get_initials }}</span>
+                                {% endif %}
+                                <span style="font-weight: 600;">{{ user.first_name|default:user.username }}</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 2px; color: var(--text-muted); transition: transform 0.2s ease;"></i>
+                            </button>
+
+                            <!-- Profile Dropdown Menu -->
+                            <div class="user-profile-dropdown-menu" id="userProfileDropdown" role="menu" aria-label="User options" style="display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 240px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-xl); z-index: 1050; padding: 6px 0; overflow: hidden;">
+                                <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: var(--bg-alt);">
+                                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-primary); line-height: 1.2;">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </div>
+                                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ user.email }}
+                                    </div>
+                                    <div style="margin-top: 6px;">
+                                        <span class="user-badge user-badge-{{ user.user_type|lower }}" style="font-size: 10.5px; padding: 2px 8px;">
+                                            {{ user.get_user_type_display }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <ul style="list-style: none; margin: 0; padding: 6px 0;">
+                                    <li>
+                                        <a href="{% url 'user-profile' %}" class="profile-dropdown-item" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-primary); font-size: 13px; text-decoration: none;">
+                                            <i class="fa-regular fa-user" style="width: 16px; color: var(--primary);" aria-hidden="true"></i>
+                                            <span>My Profile & Settings</span>
+                                        </a>
+                                    </li>
+
+                                    {% if user.user_type == 'DOCTOR' %}
+                                    <li>
+                                        <a href="{% url 'doctor-dashboard' %}" class="profile-dropdown-item" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-primary); font-size: 13px; text-decoration: none;">
+                                            <i class="fa-solid fa-stethoscope" style="width: 16px; color: var(--primary);" aria-hidden="true"></i>
+                                            <span>Doctor Workspace</span>
+                                        </a>
+                                    </li>
+                                    {% elif user.user_type == 'PATIENT' %}
+                                    <li>
+                                        <a href="{% url 'patient-dashboard' %}" class="profile-dropdown-item" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-primary); font-size: 13px; text-decoration: none;">
+                                            <i class="fa-solid fa-hospital-user" style="width: 16px; color: var(--primary);" aria-hidden="true"></i>
+                                            <span>Patient Portal</span>
+                                        </a>
+                                    </li>
+                                    {% elif user.user_type == 'STAFF' %}
+                                    <li>
+                                        <a href="{% url 'staff-dashboard' %}" class="profile-dropdown-item" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-primary); font-size: 13px; text-decoration: none;">
+                                            <i class="fa-solid fa-clipboard-user" style="width: 16px; color: var(--primary);" aria-hidden="true"></i>
+                                            <span>Staff Desk</span>
+                                        </a>
+                                    </li>
+                                    {% elif user.user_type == 'ADMIN' %}
+                                    <li>
+                                        <a href="{% url 'admin-dashboard' %}" class="profile-dropdown-item" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--text-primary); font-size: 13px; text-decoration: none;">
+                                            <i class="fa-solid fa-gauge-high" style="width: 16px; color: var(--primary);" aria-hidden="true"></i>
+                                            <span>Command Center</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+
+                                    <li style="border-top: 1px solid var(--border-color); margin: 4px 0;"></li>
+
+                                    <li>
+                                        <a href="{% url 'logout' %}" class="profile-dropdown-item profile-dropdown-logout" style="display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: #f87171; font-size: 13px; font-weight: 600; text-decoration: none;">
+                                            <i class="fa-solid fa-arrow-right-from-bracket" style="width: 16px;" aria-hidden="true"></i>
+                                            <span>Log Out</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                     {% else %}
-                        <li><a href="{% url 'home' %}" class="nav-link"><i class="fa-solid fa-house"></i> <span>Home</span></a></li>
-                        <li><a href="{% url 'login' %}" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Sign In</span></a></li>
-                        <li><a href="{% url 'signup' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> <span>Register</span></a></li>
+                        <li><a href="{% url 'home' %}" class="nav-link"><i class="fa-solid fa-house" aria-hidden="true"></i> <span>Home</span></a></li>
+                        <li>
+                            <button type="button" class="theme-toggle-btn" id="themeToggleBtnPublic" aria-label="Toggle dark/light theme" title="Toggle theme">
+                                <i class="fa-solid fa-moon theme-icon" aria-hidden="true"></i>
+                            </button>
+                        </li>
+                        <li><a href="{% url 'login' %}" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> <span>Sign In</span></a></li>
+                        <li><a href="{% url 'signup' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> <span>Register</span></a></li>
                     {% endif %}
                 </ul>
             </nav>
+
+            <!-- Mobile Navigation Trigger & Action Icons -->
+            <div style="display: none; align-items: center; gap: 10px;" class="mobile-actions-wrapper">
+                <button type="button" class="theme-toggle-btn" id="themeToggleBtnMobile" aria-label="Toggle dark/light theme" title="Toggle theme">
+                    <i class="fa-solid fa-moon theme-icon" aria-hidden="true"></i>
+                </button>
+
+                {% if user.is_authenticated %}
+                    <a href="{% url 'notification-list' %}" class="notification-bell-btn" aria-label="Notifications" style="position: relative;">
+                        <i class="fa-regular fa-bell" aria-hidden="true"></i>
+                        {% if unread_notifications_count > 0 %}
+                            <span class="notification-badge-count">
+                                {% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}
+                            </span>
+                        {% endif %}
+                    </a>
+                {% endif %}
+
+                <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open mobile navigation menu" aria-expanded="false">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- Global Flash Alerts -->
-    {% if messages %}
-    <div class="alerts-container">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }}">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                {% if message.tags == 'success' %}
-                    <i class="fa-solid fa-circle-check" style="font-size: 16px;"></i>
-                {% elif message.tags == 'warning' %}
-                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px;"></i>
-                {% elif message.tags == 'error' or message.tags == 'danger' %}
-                    <i class="fa-solid fa-circle-exclamation" style="font-size: 16px;"></i>
-                {% else %}
-                    <i class="fa-solid fa-circle-info" style="font-size: 16px;"></i>
-                {% endif %}
-                <span>{{ message }}</span>
-            </div>
+    <!-- 8.3 Mobile Off-Canvas Navigation Drawer -->
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+    <aside class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation" aria-hidden="true">
+        <div class="mobile-drawer-header">
+            <a href="{% url 'home' %}" class="brand-logo" style="font-size: 18px;">
+                <span class="brand-icon-wrapper" style="width: 32px; height: 32px; font-size: 15px;" aria-hidden="true">
+                    <i class="fa-solid fa-staff-snake"></i>
+                </span>
+                <span>ClinicHub</span>
+            </a>
+            <button type="button" class="btn btn-outline btn-sm" id="mobileMenuCloseBtn" aria-label="Close navigation menu" style="padding: 6px 10px;">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <!-- Page Content -->
-    <main class="main-content">
+        <div class="mobile-drawer-body">
+            {% if user.is_authenticated %}
+                <!-- Mobile User Card -->
+                <a href="{% url 'user-profile' %}" style="display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--bg-alt); border-radius: var(--radius-sm); border: 1px solid var(--border-color); text-decoration: none; color: inherit;">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.get_avatar_url }}" alt="{{ user.get_full_name }}" class="avatar-img avatar-md">
+                    {% else %}
+                        <span class="avatar-initials avatar-md">{{ user.get_initials }}</span>
+                    {% endif %}
+                    <div style="flex: 1; min-width: 0;">
+                        <strong style="display: block; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ user.get_full_name }}
+                        </strong>
+                        <span style="display: block; font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {{ user.email }}
+                        </span>
+                        <div style="margin-top: 4px;">
+                            <span class="user-badge user-badge-{{ user.user_type|lower }}" style="font-size: 10px; padding: 2px 6px;">
+                                {{ user.get_user_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="font-size: 12px; color: var(--text-muted);" aria-hidden="true"></i>
+                </a>
+
+                <!-- Mobile Navigation Links -->
+                <ul class="mobile-drawer-links">
+                    {% if user.user_type == "PATIENT" %}
+                        <li><a href="{% url 'patient-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> <span>Dashboard</span></a></li>
+                        <li><a href="{% url 'create-appointment' %}" class="nav-link"><i class="fa-regular fa-calendar-plus" aria-hidden="true"></i> <span>Book Appointment</span></a></li>
+                        <li><a href="{% url 'my-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> <span>My Appointments</span></a></li>
+                        <li><a href="{% url 'patient-prescriptions' %}" class="nav-link"><i class="fa-solid fa-file-prescription" aria-hidden="true"></i> <span>Prescriptions</span></a></li>
+                        <li><a href="{% url 'patient-billing-history' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing Invoices</span></a></li>
+                        <li><a href="{% url 'user-profile' %}" class="nav-link"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i> <span>Profile & Settings</span></a></li>
+                    {% elif user.user_type == "STAFF" %}
+                        <li><a href="{% url 'staff-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> <span>Executive Dashboard</span></a></li>
+                        <li><a href="{% url 'today-appointments' %}" class="nav-link"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> <span>Reception Schedule</span></a></li>
+                        <li><a href="{% url 'queue' %}" class="nav-link"><i class="fa-solid fa-users-line" aria-hidden="true"></i> <span>Waiting Queue</span></a></li>
+                        <li><a href="{% url 'staff-patient-search' %}" class="nav-link"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> <span>Patient Directory</span></a></li>
+                        <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing & Payments</span></a></li>
+                        <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Lab Tests</span></a></li>
+                        <li><a href="{% url 'user-profile' %}" class="nav-link"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i> <span>Profile & Settings</span></a></li>
+                    {% elif user.user_type == "DOCTOR" %}
+                        <li><a href="{% url 'doctor-dashboard' %}" class="nav-link"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> <span>Care Portal Dashboard</span></a></li>
+                        <li><a href="{% url 'doctor-appointments' %}" class="nav-link"><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> <span>Appointments & Visits</span></a></li>
+                        <li><a href="{% url 'lab-orders-list' %}" class="nav-link"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i> <span>Diagnostic Orders</span></a></li>
+                        <li><a href="{% url 'doctor-availability' %}" class="nav-link"><i class="fa-regular fa-clock" aria-hidden="true"></i> <span>Manage Schedule</span></a></li>
+                        <li><a href="{% url 'user-profile' %}" class="nav-link"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i> <span>Profile & Settings</span></a></li>
+                    {% elif user.user_type == "ADMIN" or user.is_superuser %}
+                        <li><a href="{% url 'admin-dashboard' %}" class="nav-link"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> <span>Command Center</span></a></li>
+                        <li><a href="{% url 'admin-doctors' %}" class="nav-link"><i class="fa-solid fa-user-doctor" aria-hidden="true"></i> <span>Doctors Directory</span></a></li>
+                        <li><a href="{% url 'admin-staff' %}" class="nav-link"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> <span>Staff Directory</span></a></li>
+                        <li><a href="{% url 'admin-departments' %}" class="nav-link"><i class="fa-solid fa-hospital" aria-hidden="true"></i> <span>Departments</span></a></li>
+                        <li><a href="{% url 'billing-invoice-list' %}" class="nav-link"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> <span>Billing</span></a></li>
+                        <li><a href="{% url 'admin-reports' %}" class="nav-link"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> <span>Executive Reports</span></a></li>
+                        <li><a href="{% url 'user-profile' %}" class="nav-link"><i class="fa-solid fa-id-card-clip" aria-hidden="true"></i> <span>Profile & Settings</span></a></li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                <ul class="mobile-drawer-links">
+                    <li><a href="{% url 'home' %}" class="nav-link"><i class="fa-solid fa-house" aria-hidden="true"></i> <span>Home</span></a></li>
+                    <li><a href="{% url 'login' %}" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> <span>Sign In</span></a></li>
+                    <li><a href="{% url 'signup' %}" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> <span>Create Account</span></a></li>
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="mobile-drawer-footer">
+            {% if user.is_authenticated %}
+                <a href="{% url 'logout' %}" class="btn btn-outline" style="width: 100%;">
+                    <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                    <span>Log Out</span>
+                </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- 8.4 Modern Toast Notification Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast-card toast-{{ message.tags|default:'info' }}" role="alert">
+                    <div class="toast-icon">
+                        {% if message.tags == 'success' %}
+                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}
+                            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        {% endif %}
+                    </div>
+                    <div class="toast-body">
+                        <div class="toast-title">
+                            {% if message.tags == 'success' %}Success
+                            {% elif message.tags == 'warning' %}Attention
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}Notice
+                            {% else %}Information{% endif %}
+                        </div>
+                        <div class="toast-message">{{ message }}</div>
+                    </div>
+                    <button type="button" class="toast-close-btn" aria-label="Close notification" onclick="dismissToast(this.closest('.toast-card'))">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                    <div class="toast-progress"></div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Page Content Anchor for Screen Readers & Keyboard Nav -->
+    <main class="main-content" id="mainContent">
         {% block content %}{% endblock %}
     </main>
 
@@ -118,22 +419,24 @@
     <footer class="site-footer">
         <div class="footer-container">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: var(--primary);"><i class="fa-solid fa-heart-pulse"></i></span>
-                <span><strong>ClinicHub</strong> &copy; {% now "Y" %} &mdash; Thoughtful patient care, transparent scheduling.</span>
+                <span style="color: var(--primary);" aria-hidden="true"><i class="fa-solid fa-heart-pulse"></i></span>
+                <span><strong>ClinicHub</strong> &copy; {% now "Y" %} &mdash; Modern, patient-centric healthcare management.</span>
             </div>
             <div class="footer-links">
                 <a href="{% url 'home' %}">Home</a>
+                <a href="{% url 'splash' %}" title="View Animated Logo Intro">Intro</a>
                 {% if user.is_authenticated %}
                     {% if user.user_type == "PATIENT" %}
                         <a href="{% url 'create-appointment' %}">Book Appointment</a>
                         <a href="{% url 'patient-dashboard' %}">Dashboard</a>
                     {% elif user.user_type == "DOCTOR" %}
-                        <a href="{% url 'doctor-dashboard' %}">Doctor Dashboard</a>
+                        <a href="{% url 'doctor-dashboard' %}">Care Portal</a>
                         <a href="{% url 'doctor-availability' %}">My Schedule</a>
                     {% elif user.user_type == "STAFF" or user.is_superuser %}
-                        <a href="{% url 'today-appointments' %}">Today's Schedule</a>
-                        <a href="{% url 'queue' %}">Queue</a>
+                        <a href="{% url 'today-appointments' %}">Reception Schedule</a>
+                        <a href="{% url 'queue' %}">Waiting Queue</a>
                     {% endif %}
+                    <a href="{% url 'user-profile' %}">Profile</a>
                 {% else %}
                     <a href="{% url 'login' %}">Log In</a>
                     <a href="{% url 'signup' %}">Register</a>
@@ -141,6 +444,283 @@
             </div>
         </div>
     </footer>
+
+    <!-- Global Interactive Functionality Scripts -->
+    <script>
+    /* ================= 8.5 DARK/LIGHT THEME SWITCHER ================= */
+    function initTheme() {
+        const themeToggles = [
+            document.getElementById('themeToggleBtn'),
+            document.getElementById('themeToggleBtnPublic'),
+            document.getElementById('themeToggleBtnMobile')
+        ];
+
+        function updateIcons(isDark) {
+            themeToggles.forEach(btn => {
+                if (btn) {
+                    const icon = btn.querySelector('.theme-icon');
+                    if (icon) {
+                        icon.className = isDark ? 'fa-solid fa-sun theme-icon' : 'fa-solid fa-moon theme-icon';
+                    }
+                }
+            });
+        }
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        updateIcons(isDark);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', target);
+            localStorage.setItem('clinichub_theme', target);
+            updateIcons(target === 'dark');
+        }
+
+        themeToggles.forEach(btn => {
+            if (btn) {
+                btn.addEventListener('click', toggleTheme);
+            }
+        });
+    }
+
+    /* ================= 8.3 MOBILE NAVIGATION DRAWER ================= */
+    function initMobileNav() {
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const closeBtn = document.getElementById('mobileMenuCloseBtn');
+        const drawer = document.getElementById('mobileNavDrawer');
+        const backdrop = document.getElementById('mobileNavBackdrop');
+
+        function openDrawer() {
+            if (drawer && backdrop) {
+                drawer.classList.add('show');
+                backdrop.classList.add('show');
+                drawer.setAttribute('aria-hidden', 'false');
+                if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeDrawer() {
+            if (drawer && backdrop) {
+                drawer.classList.remove('show');
+                backdrop.classList.remove('show');
+                drawer.setAttribute('aria-hidden', 'true');
+                if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            }
+        }
+
+        if (menuBtn) menuBtn.addEventListener('click', openDrawer);
+        if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+        if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && drawer && drawer.classList.contains('show')) {
+                closeDrawer();
+            }
+        });
+    }
+
+    /* ================= 8.4 TOAST NOTIFICATION SYSTEM ================= */
+    function dismissToast(toastEl) {
+        if (!toastEl) return;
+        toastEl.classList.add('hiding');
+        setTimeout(() => {
+            if (toastEl.parentNode) {
+                toastEl.parentNode.removeChild(toastEl);
+            }
+        }, 300);
+    }
+
+    function setupToastAutoDismiss(toastEl, duration = 4500) {
+        const progressEl = toastEl.querySelector('.toast-progress');
+        if (progressEl) {
+            progressEl.style.transition = `transform ${duration}ms linear`;
+            requestAnimationFrame(() => {
+                progressEl.style.transform = 'scaleX(0)';
+            });
+        }
+        setTimeout(() => {
+            dismissToast(toastEl);
+        }, duration);
+    }
+
+    window.showToast = function(message, type = 'info', duration = 4500) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const iconMap = {
+            'success': 'fa-circle-check',
+            'warning': 'fa-triangle-exclamation',
+            'error': 'fa-circle-exclamation',
+            'danger': 'fa-circle-exclamation',
+            'info': 'fa-circle-info'
+        };
+
+        const titleMap = {
+            'success': 'Success',
+            'warning': 'Attention',
+            'error': 'Notice',
+            'danger': 'Notice',
+            'info': 'Information'
+        };
+
+        const icon = iconMap[type] || 'fa-circle-info';
+        const title = titleMap[type] || 'Information';
+
+        const toast = document.createElement('div');
+        toast.className = `toast-card toast-${type}`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="fa-solid ${icon}" aria-hidden="true"></i>
+            </div>
+            <div class="toast-body">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button type="button" class="toast-close-btn" aria-label="Close notification" onclick="dismissToast(this.closest('.toast-card'))">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+            <div class="toast-progress"></div>
+        `;
+
+        container.appendChild(toast);
+        setupToastAutoDismiss(toast, duration);
+    };
+
+    /* ================= 8.4 FORM SUBMIT BUTTON SPINNERS ================= */
+    function initFormSpinners() {
+        document.querySelectorAll('form').forEach(form => {
+            // Skip forms with data-no-spinner or live searches
+            if (form.hasAttribute('data-no-spinner')) return;
+
+            form.addEventListener('submit', function() {
+                const submitBtn = form.querySelector('button[type="submit"]:not([disabled])');
+                if (submitBtn) {
+                    setTimeout(() => {
+                        submitBtn.classList.add('btn-loading');
+                        const icon = submitBtn.querySelector('i');
+                        if (icon) {
+                            icon.className = 'fa-solid fa-circle-notch fa-spin';
+                        }
+                    }, 50);
+                }
+            });
+        });
+    }
+
+    /* ================= NOTIFICATION BELL & DROPDOWN ================= */
+    function initNotificationBell() {
+        const bellBtn = document.getElementById('notificationBellBtn');
+        const dropdown = document.getElementById('notificationDropdown');
+
+        if (bellBtn && dropdown) {
+            bellBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isVisible = dropdown.classList.contains('show') || dropdown.style.display === 'block';
+                if (isVisible) {
+                    dropdown.classList.remove('show');
+                    dropdown.style.display = 'none';
+                    bellBtn.classList.remove('active');
+                    bellBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    dropdown.classList.add('show');
+                    dropdown.style.display = 'block';
+                    bellBtn.classList.add('active');
+                    bellBtn.setAttribute('aria-expanded', 'true');
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                    dropdown.style.display = 'none';
+                    bellBtn.classList.remove('active');
+                    bellBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    }
+
+    function initProfileDropdown() {
+        const btn = document.getElementById('userProfileDropdownBtn');
+        const dropdown = document.getElementById('userProfileDropdown');
+
+        if (btn && dropdown) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isVisible = dropdown.style.display === 'block';
+
+                // Close notification dropdown if open
+                const notifDropdown = document.getElementById('notificationDropdown');
+                const notifBell = document.getElementById('notificationBellBtn');
+                if (notifDropdown) {
+                    notifDropdown.style.display = 'none';
+                    notifDropdown.classList.remove('show');
+                }
+                if (notifBell) notifBell.classList.remove('active');
+
+                if (isVisible) {
+                    dropdown.style.display = 'none';
+                    btn.setAttribute('aria-expanded', 'false');
+                } else {
+                    dropdown.style.display = 'block';
+                    btn.setAttribute('aria-expanded', 'true');
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initTheme();
+        initMobileNav();
+        initFormSpinners();
+        initNotificationBell();
+        initProfileDropdown();
+        // Navbar Scroll Observer for Fullscreen Pages
+        const mainNavbar = document.getElementById('mainHeaderNavbar');
+        if (mainNavbar) {
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 40) {
+                    mainNavbar.classList.add('scrolled');
+                } else {
+                    mainNavbar.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        }
+
+
+        // Auto-dismiss any pre-rendered server messages
+        document.querySelectorAll('#toastContainer .toast-card').forEach(toast => {
+            setupToastAutoDismiss(toast);
+        });
+    });
+    </script>
+
+    <style>
+    @media (max-width: 992px) {
+        .mobile-actions-wrapper {
+            display: inline-flex !important;
+        }
+    }
+    </style>
 
     {% block extra_js %}{% endblock %}
 </body>

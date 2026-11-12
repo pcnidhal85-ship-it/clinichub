@@ -11,6 +11,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
+from ClinicHub.ratelimit import ratelimit
+from .audit import log_audit_event
 
 from users.models import User
 from users.decorators import patient_required, staff_required, doctor_required, admin_required
@@ -54,6 +57,7 @@ from .models import (
     Invoice,
     InvoiceLineItem,
     Payment,
+    Notification,
 )
 from .services import (
     generate_appointment_token,
@@ -129,6 +133,14 @@ def create_appointment(request):
                     token_number=token_number,
                     reason=reason,
                 )
+                log_audit_event(
+                    request=request,
+                    actor=request.user,
+                    action="APPOINTMENT_CREATE",
+                    target_object=appointment,
+                    description=f"Appointment #{appointment.id} booked for Token #{token.token_number} with Dr. {doctor.user.get_full_name()}",
+                    extra_data={"doctor_id": doctor.id, "token_number": token.token_number, "date": str(appointment_date)},
+                )
                 return redirect("appointment-success", appointment_id=appointment.id)
 
             except ValidationError as e:
@@ -183,6 +195,7 @@ def create_appointment(request):
 # GET DOCTORS BY DEPARTMENT
 # --------------------------------
 
+@ratelimit(rate='120/m', key='ip', block=True)
 def get_doctors(request):
     department_id = request.GET.get("department_id")
     if not department_id:
@@ -225,6 +238,7 @@ def get_doctors(request):
 # API: GET AVAILABLE SLOTS FOR DOCTOR & DATE
 # --------------------------------
 
+@ratelimit(rate='120/m', key='ip', block=True)
 def get_available_slots(request):
     doctor_id = request.GET.get("doctor_id")
     date_str = request.GET.get("date")
@@ -284,6 +298,7 @@ def get_available_slots(request):
 # API: GET TOKENS IN A SPECIFIC SLOT
 # --------------------------------
 
+@ratelimit(rate='120/m', key='ip', block=True)
 def get_slot_tokens(request):
     doctor_id = request.GET.get("doctor_id")
     date_str = request.GET.get("date")
@@ -543,6 +558,14 @@ def reschedule_appointment(request, appointment_id):
                     request,
                     f"Your consultation with Dr. {appointment.doctor.user.first_name} {appointment.doctor.user.last_name} has been rescheduled to {new_date.strftime('%B %d, %Y')} at {new_time.strftime('%I:%M %p')}. Queue Token #{token.formatted_token_number}.",
                 )
+                log_audit_event(
+                    request=request,
+                    actor=request.user,
+                    action="APPOINTMENT_CREATE",
+                    target_object=appointment,
+                    description=f"Appointment #{appointment.id} booked for Token #{token.token_number} with Dr. {doctor.user.get_full_name()}",
+                    extra_data={"doctor_id": doctor.id, "token_number": token.token_number, "date": str(appointment_date)},
+                )
                 return redirect("appointment-success", appointment_id=appointment.id)
 
             except Exception:
@@ -614,6 +637,12 @@ def cancel_appointment(request, appointment_id):
                 if token:
                     token.status = "CANCELLED"
                     token.save(update_fields=["status"])
+
+            try:
+                from .services import broadcast_queue_update
+                broadcast_queue_update()
+            except Exception:
+                pass
 
             try:
                 from .notifications import send_appointment_cancellation_email
@@ -818,6 +847,12 @@ def walk_in_booking(request):
                     except Exception as exc:
                         logger.warning("Could not dispatch walk-in confirmation email: %s", exc)
 
+                    try:
+                        from .services import broadcast_queue_update
+                        broadcast_queue_update()
+                    except Exception:
+                        pass
+
                 messages.success(
                     request,
                     f"Walk-in appointment registered for {patient}. Assigned Queue Token #{token.formatted_token_number} for Dr. {doctor.user.last_name}."
@@ -883,6 +918,18 @@ def check_in_patient(request, appointment_id):
             except Exception:
                 pass
 
+            try:
+                from .notifications import notify_patient_checked_in
+                notify_patient_checked_in(appointment, token)
+            except Exception:
+                pass
+
+            try:
+                from .services import broadcast_queue_update
+                broadcast_queue_update()
+            except Exception:
+                pass
+
             messages.success(
                 request,
                 f"Patient {appointment.patient} checked in. Token #{token.formatted_token_number} for Dr. {appointment.doctor.user.last_name}."
@@ -927,9 +974,20 @@ def queue(request):
             "appointment__doctor__department",
         ).order_by("token_number")
 
+        current_token = Token.objects.filter(
+            doctor=doctor,
+            token_date=today,
+            status="CALLED",
+            is_deleted=False,
+            appointment__is_deleted=False,
+        ).select_related(
+            "appointment__patient__user",
+        ).order_by("-appointment__updated_at").first()
+
         doctor_queues = [{
             "doctor": doctor,
             "tokens": list(tokens),
+            "current_token": current_token,
             "waiting_count": tokens.count(),
         }]
 
@@ -937,6 +995,7 @@ def queue(request):
             "is_doctor_view": True,
             "doctor": doctor,
             "tokens": tokens,
+            "current_token": current_token,
             "doctor_queues": doctor_queues,
             "total_waiting": tokens.count(),
             "today": today,
@@ -978,28 +1037,48 @@ def queue(request):
 
     tokens_list = list(base_tokens_qs)
 
+    # Active / Called tokens today mapped by doctor_id
+    called_tokens_qs = Token.objects.filter(
+        token_date=today,
+        status="CALLED",
+        is_deleted=False,
+        appointment__is_deleted=False,
+    ).select_related(
+        "doctor",
+        "appointment__patient__user",
+    ).order_by("-appointment__updated_at")
+
+    called_dict = {}
+    for ct in called_tokens_qs:
+        if ct.doctor_id not in called_dict:
+            called_dict[ct.doctor_id] = ct
+
     doctor_queues = []
     doctors_to_show = all_doctors.filter(id=int(selected_doctor_id)) if (selected_doctor_id and selected_doctor_id.isdigit()) else all_doctors
 
     for doc in doctors_to_show:
         doc_tokens = [t for t in tokens_list if t.doctor_id == doc.id]
-        if doc_tokens or selected_doctor_id:
+        current_tok = called_dict.get(doc.id)
+        if doc_tokens or current_tok or selected_doctor_id:
             doctor_queues.append({
                 "doctor": doc,
                 "tokens": doc_tokens,
+                "current_token": current_tok,
                 "waiting_count": len(doc_tokens),
             })
 
-    # Include any doctors not in all_doctors that might have waiting tokens
+    # Include any doctors not in all_doctors that might have waiting or called tokens
     covered_token_ids = {t.id for q in doctor_queues for t in q["tokens"]}
     orphan_tokens = [t for t in tokens_list if t.id not in covered_token_ids]
     if orphan_tokens:
         orphan_docs = {t.doctor for t in orphan_tokens}
         for doc in orphan_docs:
             doc_tokens = [t for t in orphan_tokens if t.doctor_id == doc.id]
+            current_tok = called_dict.get(doc.id)
             doctor_queues.append({
                 "doctor": doc,
                 "tokens": doc_tokens,
+                "current_token": current_tok,
                 "waiting_count": len(doc_tokens),
             })
 
@@ -1018,31 +1097,157 @@ def queue(request):
 
 
 # --------------------------------
-# CALL NEXT PATIENT (DOCTOR ONLY)
+# CALL NEXT PATIENT (DOCTOR & RECEPTIONIST)
 # --------------------------------
 
-@doctor_required
+@login_required
 def call_next_patient(request):
+    """
+    Calls the next waiting patient for a doctor.
+    Can be invoked by:
+    1) A Doctor (calling next patient for their own consultation desk)
+    2) A Receptionist / Staff / Admin (calling next patient for any selected doctor)
+    """
     if request.method != "POST":
-        return redirect("doctor-dashboard")
+        return redirect("queue")
 
-    doctor = get_object_or_404(
-        Doctor,
-        user=request.user,
-        is_deleted=False,
-    )
+    user = request.user
+    if not (user.is_superuser or user.user_type in ["DOCTOR", "STAFF", "ADMIN"]):
+        return HttpResponseForbidden("You do not have permission to call queue patients.")
+
+    # Determine target doctor
+    doctor_id = request.POST.get("doctor_id")
+
+    if doctor_id:
+        doctor = get_object_or_404(
+            Doctor,
+            id=int(doctor_id),
+            is_deleted=False,
+            is_active=True,
+        )
+    elif user.user_type == "DOCTOR":
+        doctor = get_object_or_404(
+            Doctor,
+            user=user,
+            is_deleted=False,
+        )
+    else:
+        messages.error(request, "Please specify a doctor to call the next patient.")
+        return redirect("queue")
 
     token, appointment = call_next_patient_for_doctor(doctor)
 
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER")
+
     if not token or not appointment:
-        messages.info(request, "No waiting patients in your queue.")
-        return redirect("doctor-dashboard")
+        messages.info(request, f"No waiting patients in queue for Dr. {doctor.user.last_name}.")
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
+        return redirect("doctor-dashboard" if user.user_type == "DOCTOR" else "queue")
 
     messages.success(
         request,
-        f"Calling Token #{token.formatted_token_number}: {appointment.patient}. Consultation started."
+        f"Calling Token #{token.formatted_token_number}: {appointment.patient} for Dr. {doctor.user.last_name}."
+    )
+
+    if user.user_type == "DOCTOR" and not doctor_id:
+        log_audit_event(
+        request=request,
+        actor=request.user,
+        action="CONSULTATION_START",
+        target_object=appointment,
+        description=f"Consultation started for appointment #{appointment.id} ({appointment.patient})",
     )
     return redirect("consultation-workspace", appointment_id=appointment.id)
+
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("queue")
+
+
+# --------------------------------
+# RECEPTIONIST / STAFF QUEUE PATIENT STATUS UPDATE
+# --------------------------------
+
+@login_required
+def update_queue_patient_status(request, appointment_id):
+    """
+    Allows Receptionists, Staff, and Doctors to update the active/current patient's
+    status directly from the Waiting Queue view without needing to enter the full EMR workspace.
+    Actions supported:
+    - 'complete': Marks consultation as completed and generates billing invoice
+    - 'no_show': Marks patient as No-Show and cancels the active token
+    - 'recall': Re-announces the patient on the Public TV Display Board
+    - 'send_to_queue': Moves the token back to WAITING status in queue
+    """
+    if request.method != "POST":
+        return redirect("queue")
+
+    user = request.user
+    if not (user.is_superuser or user.user_type in ["DOCTOR", "STAFF", "ADMIN"]):
+        return HttpResponseForbidden("You do not have permission to update patient queue status.")
+
+    appointment = get_object_or_404(
+        Appointment.objects.select_related("doctor__user", "patient__user"),
+        id=appointment_id,
+        is_deleted=False
+    )
+    token = getattr(appointment, 'token', None)
+    action = request.POST.get("action", "").strip()
+
+    if action == "complete":
+        appointment.status = "COMPLETED"
+        appointment.save(update_fields=["status", "updated_at"])
+        if token:
+            token.status = "COMPLETED"
+            token.save(update_fields=["status"])
+        try:
+            from .services import generate_or_get_appointment_invoice
+            generate_or_get_appointment_invoice(appointment)
+        except Exception:
+            pass
+        messages.success(request, f"Consultation for {appointment.patient} marked as Completed.")
+
+    elif action == "no_show":
+        appointment.status = "NO_SHOW"
+        appointment.save(update_fields=["status", "updated_at"])
+        if token:
+            token.status = "CANCELLED"
+            token.save(update_fields=["status"])
+        messages.warning(request, f"Patient {appointment.patient} marked as No-Show.")
+
+    elif action == "recall":
+        # Triggers real-time notification & broadcast on TV board
+        try:
+            from .notifications import notify_patient_called
+            if token:
+                notify_patient_called(appointment, token)
+        except Exception:
+            pass
+        messages.info(request, f"Re-called Token #{token.formatted_token_number if token else ''} for {appointment.patient} on Public TV Display.")
+
+    elif action == "send_to_queue":
+        appointment.status = "CHECKED_IN"
+        appointment.save(update_fields=["status", "updated_at"])
+        if token:
+            token.status = "WAITING"
+            token.save(update_fields=["status"])
+        messages.info(request, f"Token #{token.formatted_token_number if token else ''} ({appointment.patient}) returned to waiting queue.")
+
+    else:
+        messages.error(request, f"Unrecognized queue action: '{action}'.")
+
+    # Broadcast update to TV display and connected clients
+    try:
+        from .services import broadcast_queue_update
+        broadcast_queue_update()
+    except Exception:
+        pass
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("queue")
 
 
 # ========================================================
@@ -1265,6 +1470,13 @@ def start_consultation(request, appointment_id):
     messages.info(
         request,
         f"Consultation started for {appointment.patient}."
+    )
+    log_audit_event(
+        request=request,
+        actor=request.user,
+        action="CONSULTATION_START",
+        target_object=appointment,
+        description=f"Consultation started for appointment #{appointment.id} ({appointment.patient})",
     )
     return redirect("consultation-workspace", appointment_id=appointment.id)
 
@@ -1548,6 +1760,12 @@ def complete_consultation(request, appointment_id):
             token.status = "COMPLETED"
             token.save(update_fields=["status"])
 
+        try:
+            from .services import broadcast_queue_update
+            broadcast_queue_update()
+        except Exception:
+            pass
+
         # Auto-generate or link itemized invoice for front-desk / billing
         try:
             from .services import generate_or_get_appointment_invoice
@@ -1558,6 +1776,15 @@ def complete_consultation(request, appointment_id):
         messages.success(
             request,
             f"Consultation for {patient} completed successfully."
+        )
+        log_audit_event(
+            request=request,
+            actor=request.user,
+            action="CONSULTATION_COMPLETE",
+            target_object=appointment,
+            description=f"Consultation completed for appointment #{appointment.id} ({patient}) with diagnosis '{diagnosis}'",
+            extra_data={"diagnosis": diagnosis},
+        
         )
 
         # If medicines were prescribed, take doctor directly to print/view prescription!
@@ -2125,6 +2352,48 @@ def staff_reschedule_appointment(request, appointment_id):
     return render(request, "clinic/reschedule_appointment.html", context)
 
 
+@staff_required
+@require_POST
+def staff_send_appointment_reminder(request, appointment_id):
+    """
+    On-demand dispatch of appointment reminder email from front-desk staff portal.
+    """
+    appointment = get_object_or_404(Appointment, id=appointment_id, is_deleted=False)
+    patient_user = getattr(getattr(appointment, 'patient', None), 'user', None)
+    patient_email = getattr(patient_user, 'email', '')
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'today-appointments'
+
+    if not patient_email:
+        messages.error(request, f"Patient {appointment.patient} does not have a registered email address.")
+        return redirect(next_url)
+
+    from .notifications import send_appointment_reminder_email
+    try:
+        token = getattr(appointment, 'token', None)
+        success = send_appointment_reminder_email(
+            appointment=appointment,
+            token=token,
+            fail_silently=False,
+            update_record=True,
+        )
+        if success:
+            token_str = f" (Token #{token.formatted_token_number})" if token else ""
+            messages.success(
+                request,
+                f"Reminder email dispatched successfully to {patient_email}{token_str}."
+            )
+        else:
+            messages.warning(
+                request,
+                f"Reminder could not be delivered to {patient_email}."
+            )
+    except Exception as exc:
+        logger.exception("Manual reminder delivery failed: %s", exc)
+        messages.error(request, f"Error sending reminder email: {exc}")
+
+    return redirect(next_url)
+
+
 # ==============================================================================
 # PHASE 4: CUSTOM ADMIN MANAGEMENT PORTAL
 # ==============================================================================
@@ -2582,6 +2851,79 @@ def admin_reports(request):
         "revenue_due": revenue_due,
     }
     return render(request, "clinic/admin/admin_reports.html", context)
+
+
+# --------------------------------
+# 9.4 ADMIN AUDIT LOGS TRAIL
+# --------------------------------
+
+@admin_required
+def admin_audit_logs(request):
+    """
+    Administrator Audit Trail Explorer.
+    Allows searching and filtering through immutable clinical, authentication,
+    and administrative event logs for regulatory compliance and security tracking.
+    """
+    from .models import AuditLog
+    from django.core.paginator import Paginator
+
+    category = request.GET.get('category', 'all').lower()
+    timeframe = request.GET.get('timeframe', '7d').lower()
+    query = request.GET.get('q', '').strip()
+
+    logs = AuditLog.objects.select_related('actor').all()
+
+    # Timeframe filtering
+    today = timezone.localdate()
+    if timeframe == 'today':
+        logs = logs.filter(created_at__date=today)
+    elif timeframe == '7d':
+        logs = logs.filter(created_at__gte=timezone.now() - timedelta(days=7))
+    elif timeframe == '30d':
+        logs = logs.filter(created_at__gte=timezone.now() - timedelta(days=30))
+
+    # Category filtering
+    if category == 'auth':
+        logs = logs.filter(action__in=['LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'PASSWORD_RESET'])
+    elif category == 'appointment':
+        logs = logs.filter(action__in=['APPOINTMENT_CREATE', 'APPOINTMENT_RESCHEDULE', 'APPOINTMENT_CANCEL', 'CHECK_IN', 'TOKEN_CALLED'])
+    elif category == 'consultation':
+        logs = logs.filter(action__in=['CONSULTATION_START', 'CONSULTATION_COMPLETE', 'VITALS_RECORDED', 'MEDICAL_HISTORY_UPDATE', 'PRESCRIPTION_CREATE'])
+    elif category == 'billing':
+        logs = logs.filter(action__in=['INVOICE_CREATE', 'INVOICE_PAYMENT', 'SERVICE_CREATE', 'SERVICE_TOGGLE'])
+
+    # Search keyword
+    if query:
+        logs = logs.filter(
+            Q(description__icontains=query) |
+            Q(actor_email__icontains=query) |
+            Q(target_id__icontains=query) |
+            Q(ip_address__icontains=query) |
+            Q(action__icontains=query)
+        )
+
+    # Metrics
+    total_count = AuditLog.objects.count()
+    today_count = AuditLog.objects.filter(created_at__date=today).count()
+    auth_alerts_count = AuditLog.objects.filter(action='LOGIN_FAILED', created_at__date=today).count()
+    appointment_cancels_count = AuditLog.objects.filter(action='APPOINTMENT_CANCEL', created_at__date=today).count()
+
+    paginator = Paginator(logs, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'category': category,
+        'timeframe': timeframe,
+        'query': query,
+        'total_count': total_count,
+        'today_count': today_count,
+        'auth_alerts_count': auth_alerts_count,
+        'appointment_cancels_count': appointment_cancels_count,
+    }
+    return render(request, 'clinic/admin_audit_logs.html', context)
+
 
 
 # ========================================================
@@ -3451,3 +3793,199 @@ def patient_invoice_detail(request, invoice_id):
         "payments": invoice.payments.all(),
     }
     return render(request, "clinic/patient/patient_invoice_detail.html", context)
+
+
+# ==============================================================================
+# PHASE 7.4: IN-APP NOTIFICATION SYSTEM VIEWS
+# ==============================================================================
+
+@login_required
+def notification_list_view(request):
+    """
+    Dedicated Notification Center for the current logged-in user.
+    Allows filtering by type, status (unread/all), and marking items as read.
+    """
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    qs = Notification.objects.filter(
+        recipient=request.user,
+        is_deleted=False
+    ).order_by('-created_at')
+
+    status_filter = request.GET.get('status', 'all')
+    type_filter = request.GET.get('type', '')
+    query = request.GET.get('q', '').strip()
+
+    if status_filter == 'unread':
+        qs = qs.filter(is_read=False)
+
+    if type_filter:
+        qs = qs.filter(notification_type=type_filter)
+
+    if query:
+        qs = qs.filter(Q(title__icontains=query) | Q(message__icontains=query))
+
+    total_count = Notification.objects.filter(recipient=request.user, is_deleted=False).count()
+    unread_count = Notification.objects.filter(recipient=request.user, is_deleted=False, is_read=False).count()
+
+    paginator = Paginator(qs, 15)
+    page_number = request.GET.get('page', 1)
+    try:
+        notifications_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        notifications_page = paginator.page(1)
+    except EmptyPage:
+        notifications_page = paginator.page(paginator.num_pages)
+
+    context = {
+        'notifications': notifications_page,
+        'status_filter': status_filter,
+        'type_filter': type_filter,
+        'query': query,
+        'total_count': total_count,
+        'unread_count': unread_count,
+        'notification_types': Notification.TYPE_CHOICES,
+    }
+    return render(request, "clinic/notifications/notification_list.html", context)
+
+
+@login_required
+def mark_notification_as_read_view(request, notification_id):
+    """
+    Marks a single notification as read and optionally redirects to its destination link.
+    Supports both standard form POST / GET redirects and AJAX JSON requests.
+    """
+    notification = get_object_or_404(
+        Notification,
+        id=notification_id,
+        recipient=request.user,
+        is_deleted=False
+    )
+    notification.mark_as_read()
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
+    if is_ajax:
+        unread_count = Notification.objects.filter(
+            recipient=request.user,
+            is_deleted=False,
+            is_read=False
+        ).count()
+        return JsonResponse({
+            'success': True,
+            'id': notification.id,
+            'is_read': True,
+            'unread_count': unread_count,
+        })
+
+    # If notification has a link and user clicked on it, redirect there
+    if notification.link:
+        return redirect(notification.link)
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'notification-list'
+    return redirect(next_url)
+
+
+@login_required
+def mark_all_notifications_as_read_view(request):
+    """
+    Marks all notifications for the logged-in user as read.
+    Supports both POST/GET and AJAX requests.
+    """
+    from django.utils import timezone
+    Notification.objects.filter(
+        recipient=request.user,
+        is_read=False,
+        is_deleted=False
+    ).update(is_read=True, read_at=timezone.now())
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'unread_count': 0,
+        })
+
+    messages.success(request, "All notifications have been marked as read.")
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'notification-list'
+    return redirect(next_url)
+
+
+@login_required
+@ratelimit(rate='120/m', key='ip', block=True)
+def api_unread_notifications_count(request):
+    """
+    Lightweight JSON endpoint for live navbar badge polling and dropdown preview.
+    """
+    user_notifs = Notification.objects.filter(
+        recipient=request.user,
+        is_deleted=False
+    )
+    unread_count = user_notifs.filter(is_read=False).count()
+    recent = user_notifs.order_by('-created_at')[:6]
+
+    items = []
+    for n in recent:
+        items.append({
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'type': n.notification_type,
+            'level': n.level,
+            'link': n.link,
+            'is_read': n.is_read,
+            'icon': n.icon_class,
+            'created_at': n.created_at.strftime("%b %d, %H:%M"),
+        })
+
+    return JsonResponse({
+        'unread_count': unread_count,
+        'notifications': items,
+    })
+
+
+# ========================================================
+# PHASE 7.6: REAL-TIME QUEUE VIEWS & API
+# ========================================================
+
+def live_queue_display(request):
+    """
+    Public / Waiting Room TV Display Board.
+    Designed for large screens, wall TVs, waiting room monitors, and tablets.
+    Displays:
+    - NOW SERVING (Active called tokens with pulse highlights)
+    - NEXT IN LINE (Ordered waiting tokens across clinics and by doctor)
+    - Real-time digital clock and clinic status
+    - Synthetic Web Audio melodic chime on new token calling
+    - Text-to-speech announcement option
+    - WebSocket auto-sync with 5-second HTTP polling fallback
+    """
+    import json
+    from .services import get_live_queue_snapshot
+    snapshot = get_live_queue_snapshot()
+    context = {
+        'snapshot': snapshot,
+        'snapshot_json': json.dumps(snapshot),
+        'today': timezone.localdate(),
+    }
+    return render(request, "clinic/queue_live_display.html", context)
+
+
+@ratelimit(rate='120/m', key='ip', block=True)
+def api_live_queue(request):
+    """
+    Real-time JSON endpoint returning current queue snapshot.
+    Supports polling fallback and external dashboard integration.
+    """
+    from .services import get_live_queue_snapshot
+    date_str = request.GET.get('date', '').strip()
+    target_date = None
+    if date_str:
+        try:
+            from datetime import datetime
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    snapshot = get_live_queue_snapshot(date=target_date)
+    return JsonResponse(snapshot)
+

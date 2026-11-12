@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
     .queue-doctor-card {
-        background: white;
+        background: var(--bg-card);
         border-radius: var(--radius-lg);
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-sm);
@@ -13,7 +13,7 @@
         overflow: hidden;
     }
     .queue-doctor-header {
-        background: #f8fafc;
+        background: var(--bg-alt);
         padding: 16px 22px;
         border-bottom: 1px solid var(--border-color);
         display: flex;
@@ -31,8 +31,8 @@
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background: #e0f2fe;
-        color: #0284c7;
+        background: var(--primary-light);
+        color: var(--primary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -41,7 +41,8 @@
         flex-shrink: 0;
     }
     .queue-filter-bar {
-        background: white;
+        background: var(--bg-card);
+
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         padding: 12px 18px;
@@ -64,6 +65,11 @@
         gap: 18px;
         flex-wrap: wrap;
     }
+    @keyframes staffPulse {
+        0% { transform: scale(0.95); opacity: 0.7; }
+        50% { transform: scale(1.15); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.7; }
+    }
 </style>
 {% endblock %}
 
@@ -72,13 +78,19 @@
     <!-- Header with Actions -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
         <div>
-            <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
-                {% if is_doctor_view %}
-                    My Patient Waiting Queue
-                {% else %}
-                    Live Reception Waiting Queues
-                {% endif %}
-            </h1>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;">
+                <h1 style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0;">
+                    {% if is_doctor_view %}
+                        My Patient Waiting Queue
+                    {% else %}
+                        Live Reception Waiting Queues
+                    {% endif %}
+                </h1>
+                <div id="staffQueueLiveIndicator" style="display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 9999px; padding: 4px 10px; font-size: 12px; font-weight: 700;">
+                    <span style="width: 7px; height: 7px; background: #10b981; border-radius: 50%; display: inline-block; animation: staffPulse 1.8s infinite;"></span>
+                    <span id="staffQueueLiveText">Live Sync: ON</span>
+                </div>
+            </div>
             <p style="color: var(--text-secondary); font-size: 14.5px; margin: 0;">
                 {% if is_doctor_view %}
                     Patients waiting specifically for Dr. {{ doctor.user.last_name }} on {{ today|date:"l, F j, Y" }}.
@@ -88,7 +100,11 @@
             </p>
         </div>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <a href="{% url 'live-queue-display' %}" target="_blank" class="btn btn-outline btn-sm" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;">
+                <i class="fa-solid fa-tv"></i>
+                <span>Public TV Board</span>
+            </a>
             {% if is_doctor_view %}
                 <a href="{% url 'doctor-dashboard' %}" class="btn btn-outline btn-sm">
                     <i class="fa-solid fa-stethoscope"></i>
@@ -123,19 +139,30 @@
             </div>
             <div style="font-size: 18px; font-weight: 800;">
                 {{ total_waiting }} Patient{% if total_waiting != 1 %}s{% endif %} Waiting in Your Line
+                {% if current_token %}
+                    &bull; <span style="color: #fef08a;">Now in Room: Token #{{ current_token.formatted_token_number }} ({{ current_token.appointment.patient }})</span>
+                {% endif %}
             </div>
             <div style="font-size: 13.5px; opacity: 0.9; margin-top: 3px;">
                 Tokens are independent and sequenced strictly for your consultation desk.
             </div>
         </div>
 
-        <form method="post" action="{% url 'call-next-patient' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-secondary btn-lg" style="background: white; color: var(--primary) !important;" {% if total_waiting == 0 %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
-                <i class="fa-solid fa-bullhorn"></i>
-                <span>Call Next Patient</span>
-            </button>
-        </form>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            {% if current_token %}
+                <a href="{% url 'consultation-workspace' current_token.appointment.id %}" class="btn btn-secondary btn-lg" style="background: #22c55e; color: white !important;">
+                    <i class="fa-solid fa-stethoscope"></i>
+                    <span>Consultation Workspace</span>
+                </a>
+            {% endif %}
+            <form method="post" action="{% url 'call-next-patient' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-lg" style="background: var(--gold-gradient); color: #071911 !important; border: none; font-weight: 700; box-shadow: var(--shadow-md);" {% if total_waiting == 0 %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>Call Next Patient</span>
+                </button>
+            </form>
+        </div>
     </div>
     {% endif %}
 
@@ -178,23 +205,127 @@
                             Dr. {{ dq.doctor.user.first_name|cut:"Dr. "|cut:"Dr." }} {{ dq.doctor.user.last_name }}
                         </div>
                         <div style="font-size: 13px; color: var(--text-secondary);">
-                            {{ dq.doctor.department.name }} &bull; {{ dq.doctor.specialization }} &bull; License #{{ dq.doctor.license_number }}
+                            {{ dq.doctor.department.name }} &bull; {{ dq.doctor.specialization }} &bull; Room {{ dq.doctor.id }}
                         </div>
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <span class="badge badge-waiting" style="font-size: 13px; padding: 6px 12px;">
                         <i class="fa-solid fa-clock"></i>
                         <span>{{ dq.waiting_count }} Patient{% if dq.waiting_count != 1 %}s{% endif %} in Line</span>
                     </span>
                     {% if not is_doctor_view %}
+                        <!-- Receptionist Call Next Patient for this Doctor -->
+                        <form method="post" action="{% url 'call-next-patient' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="doctor_id" value="{{ dq.doctor.id }}">
+                            <button type="submit" class="btn btn-primary btn-sm" {% if dq.waiting_count == 0 %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %} title="Call next waiting patient for Dr. {{ dq.doctor.user.last_name }}">
+                                <i class="fa-solid fa-bullhorn"></i>
+                                <span>Call Next</span>
+                            </button>
+                        </form>
                         <a href="{% url 'walk-in-booking' %}?department={{ dq.doctor.department.id }}&doctor={{ dq.doctor.id }}" class="btn btn-outline btn-sm" style="font-size: 12.5px;">
                             <i class="fa-solid fa-plus"></i> Walk-In
                         </a>
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Current Active Patient (In Consultation) Banner with Receptionist Actions -->
+            {% if dq.current_token %}
+                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-bottom: 2px solid #a7f3d0; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <div style="background: #059669; color: white; padding: 6px 14px; border-radius: 10px; font-weight: 800; font-family: monospace, monospace; font-size: 20px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
+                            #{{ dq.current_token.formatted_token_number }}
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #047857; background: #a7f3d0; padding: 2px 8px; border-radius: 6px;">
+                                    <i class="fa-solid fa-stethoscope"></i> Current Patient &bull; Room {{ dq.doctor.id }}
+                                </span>
+                                <span style="font-size: 12.5px; color: #065f46;">
+                                    Called at {{ dq.current_token.appointment.updated_at|time:"h:i A" }}
+                                </span>
+                            </div>
+                            <div style="font-size: 17px; font-weight: 800; color: #064e3b; margin-top: 2px;">
+                                {{ dq.current_token.appointment.patient }}
+                                {% if dq.current_token.appointment.patient.user.phone_number %}
+                                    <span style="font-size: 13px; font-weight: 500; color: #047857; margin-left: 8px;">
+                                        <i class="fa-solid fa-phone" style="font-size: 11px;"></i> {{ dq.current_token.appointment.patient.user.phone_number }}
+                                    </span>
+                                {% endif %}
+                                {% if dq.current_token.appointment.reason %}
+                                    <span style="font-size: 13px; font-weight: 500; color: #065f46; margin-left: 8px;">
+                                        &bull; {{ dq.current_token.appointment.reason|truncatechars:40 }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Receptionist / Staff Actions to Update Current Patient -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        {% if is_doctor_view %}
+                            <a href="{% url 'consultation-workspace' dq.current_token.appointment.id %}" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-stethoscope"></i> Consultation Workspace
+                            </a>
+                        {% endif %}
+
+                        <!-- Mark Completed -->
+                        <form method="post" action="{% url 'queue-update-patient-status' dq.current_token.appointment.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="complete">
+                            <button type="submit" class="btn btn-sm" style="background: #059669; color: white; font-weight: 700; border-radius: 8px; font-size: 12.5px; padding: 6px 12px;" title="Mark consultation completed and generate billing">
+                                <i class="fa-solid fa-circle-check"></i> Mark Completed
+                            </button>
+                        </form>
+
+                        <!-- Re-Call / Chime on TV Display -->
+                        <form method="post" action="{% url 'queue-update-patient-status' dq.current_token.appointment.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="recall">
+                            <button type="submit" class="btn btn-outline btn-sm" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #34d399; font-size: 12.5px; padding: 6px 12px;" title="Re-announce patient on Public TV Display Board">
+                                <i class="fa-solid fa-bullhorn"></i> Re-Call
+                            </button>
+                        </form>
+
+                        <!-- Mark No-Show -->
+                        <form method="post" action="{% url 'queue-update-patient-status' dq.current_token.appointment.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="no_show">
+                            <button type="submit" class="btn btn-outline btn-sm" style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #f87171; font-size: 12.5px; padding: 6px 12px;" onclick="return confirm('Mark this patient as No-Show and cancel token?');" title="Patient did not enter room">
+                                <i class="fa-solid fa-user-slash"></i> No-Show
+                            </button>
+                        </form>
+
+                        <!-- Return to Waiting Queue -->
+                        <form method="post" action="{% url 'queue-update-patient-status' dq.current_token.appointment.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send_to_queue">
+                            <button type="submit" class="btn btn-outline btn-sm" style="background: rgba(148, 163, 184, 0.12); border-color: var(--border-color); color: var(--text-secondary); font-size: 12.5px; padding: 6px 12px;" title="Move token back to waiting queue">
+                                <i class="fa-solid fa-rotate-left"></i> Return to Queue
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div style="background: var(--bg-alt); border-bottom: 1px solid var(--border-color); padding: 10px 22px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 8px; height: 8px; background: #94a3b8; border-radius: 50%; display: inline-block;"></span>
+                        <span>Room {{ dq.doctor.id }}: <strong>No patient currently in consultation</strong> (Desk Ready)</span>
+                    </div>
+                    {% if dq.waiting_count > 0 and not is_doctor_view %}
+                        <form method="post" action="{% url 'call-next-patient' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="doctor_id" value="{{ dq.doctor.id }}">
+                            <button type="submit" class="btn btn-primary btn-sm" style="font-size: 12px; padding: 4px 10px;">
+                                <i class="fa-solid fa-bullhorn"></i> Call First Patient (#{{ dq.tokens.0.formatted_token_number }})
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             {% if dq.tokens %}
                 <div class="table-responsive">
@@ -297,4 +428,72 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        let ws = null;
+        let isWsConnected = false;
+        let lastTimestamp = null;
+
+        function updateStaffLiveStatus(label, isGreen) {
+            const el = document.getElementById('staffQueueLiveText');
+            const ind = document.getElementById('staffQueueLiveIndicator');
+            if (el && ind) {
+                el.textContent = label;
+                ind.style.background = isGreen ? '#ecfdf5' : '#fef3c7';
+                ind.style.color = isGreen ? '#059669' : '#d97706';
+                ind.style.borderColor = isGreen ? '#a7f3d0' : '#fde68a';
+            }
+        }
+
+        function initStaffWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/queue/live/`;
+            try {
+                ws = new WebSocket(wsUrl);
+                ws.onopen = function() {
+                    isWsConnected = true;
+                    updateStaffLiveStatus('Live Sync: ON', true);
+                };
+                ws.onmessage = function(event) {
+                    try {
+                        const payload = JSON.parse(event.data);
+                        if (payload.type === 'queue_update') {
+                            window.location.reload();
+                        }
+                    } catch(e) {}
+                };
+                ws.onclose = function() {
+                    isWsConnected = false;
+                    updateStaffLiveStatus('Auto-refresh (10s)', false);
+                    setTimeout(initStaffWebSocket, 10000);
+                };
+                ws.onerror = function() {
+                    isWsConnected = false;
+                    updateStaffLiveStatus('Auto-refresh (10s)', false);
+                };
+            } catch(e) {
+                updateStaffLiveStatus('Auto-refresh (10s)', false);
+            }
+        }
+
+        setInterval(function() {
+            if (!isWsConnected) {
+                fetch('/clinic/api/queue/live/')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (lastTimestamp && data.timestamp !== lastTimestamp) {
+                            window.location.reload();
+                        }
+                        lastTimestamp = data.timestamp;
+                    })
+                    .catch(() => {});
+            }
+        }, 10000);
+
+        initStaffWebSocket();
+    })();
+</script>
 {% endblock %}

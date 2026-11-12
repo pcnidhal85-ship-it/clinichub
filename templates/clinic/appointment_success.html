@@ -12,8 +12,9 @@
 
     /* Perforated Digital OPD Slip (Inspired by Reference Image 4) */
     .opd-ticket {
-        background: white;
+        background: var(--bg-card);
         border-radius: 16px;
+
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         border: 1px solid var(--border-color);
         overflow: hidden;
@@ -280,7 +281,7 @@
             </div>
 
             {% if appointment.reason %}
-            <div style="text-align: left; background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 15px;">
+            <div style="text-align: left; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 15px;">
                 <span style="color: var(--text-secondary); font-weight: 600;">Clinical Reason:</span>
                 <span style="color: var(--text-primary);">{{ appointment.reason }}</span>
             </div>

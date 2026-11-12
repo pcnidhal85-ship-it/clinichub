@@ -23,7 +23,7 @@
         font-weight: 600;
         text-decoration: none;
         color: var(--text-secondary);
-        background: white;
+        background: var(--bg-card);
         border: 1px solid var(--border-color);
         white-space: nowrap;
         transition: var(--transition);
@@ -56,8 +56,9 @@
     }
 
     .search-filter-card {
-        background: white;
+        background: var(--bg-card);
         border: 1px solid var(--border-color);
+
         border-radius: var(--radius-md);
         padding: 14px 18px;
         margin-bottom: 22px;
@@ -264,6 +265,13 @@
                                 <span class="badge badge-{{ appointment.status|lower }}">
                                     {{ appointment.get_status_display }}
                                 </span>
+                                {% if appointment.reminder_sent %}
+                                    <div style="margin-top: 4px;">
+                                        <span class="badge" style="background-color: #f0fdf4; color: #16a34a; font-size: 10px; border: 1px solid #bbf7d0; padding: 2px 6px; display: inline-flex; align-items: center; gap: 3px;" title="Reminder sent at {{ appointment.reminder_sent_at|date:'M d, H:i' }}">
+                                            <i class="fa-solid fa-bell"></i> Reminded
+                                        </span>
+                                    </div>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if appointment.reason %}
@@ -291,6 +299,14 @@
                                             </button>
                                         </form>
 
+                                        <form method="post" action="{% url 'staff-send-appointment-reminder' appointment.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px; {% if appointment.reminder_sent %}color: #16a34a; border-color: #86efac; background-color: #f0fdf4;{% endif %}" title="{% if appointment.reminder_sent %}Reminder sent {{ appointment.reminder_sent_at|date:'M d, H:i' }} &bull; Click to resend{% else %}Send Email Reminder to Patient{% endif %}">
+                                                <i class="{% if appointment.reminder_sent %}fa-solid fa-bell{% else %}fa-regular fa-bell{% endif %}"></i>
+                                            </button>
+                                        </form>
+
                                         <a href="{% url 'staff-reschedule-appointment' appointment.id %}" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px;" title="Reschedule Appointment">
                                             <i class="fa-solid fa-arrows-rotate"></i>
                                         </a>
@@ -305,6 +321,15 @@
                                             <i class="fa-solid fa-hourglass-half"></i>
                                             <span>In Queue</span>
                                         </a>
+
+                                        <form method="post" action="{% url 'staff-send-appointment-reminder' appointment.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px; {% if appointment.reminder_sent %}color: #16a34a; border-color: #86efac; background-color: #f0fdf4;{% endif %}" title="{% if appointment.reminder_sent %}Reminder sent {{ appointment.reminder_sent_at|date:'M d, H:i' }} &bull; Click to resend{% else %}Send Email Reminder to Patient{% endif %}">
+                                                <i class="{% if appointment.reminder_sent %}fa-solid fa-bell{% else %}fa-regular fa-bell{% endif %}"></i>
+                                            </button>
+                                        </form>
+
                                         <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-outline btn-sm" style="padding: 5px 8px; font-size: 12px; color: #dc2626;" title="Cancel / No-Show">
                                             <i class="fa-solid fa-ban"></i>
                                         </a>

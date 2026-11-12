@@ -31,9 +31,10 @@ class User(AbstractBaseUser,PermissionsMixin):
     id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=100,unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(max_length=15,blank=True,null=True)
+    profile_picture = models.ImageField(upload_to='avatars/', blank=True, null=True)
 
 
     USER_TYPE_CHOICES = [
@@ -86,6 +87,24 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     def get_short_name(self):
         return self.first_name or self.username
+
+    def get_avatar_url(self):
+        if self.profile_picture:
+            try:
+                return self.profile_picture.url
+            except Exception:
+                return ""
+        return ""
+
+    def get_initials(self):
+        initials = ""
+        if self.first_name:
+            initials += self.first_name[0].upper()
+        if self.last_name:
+            initials += self.last_name[0].upper()
+        if not initials and self.username:
+            initials = self.username[0].upper()
+        return initials or "CH"
 
     def clean(self):
         from django.core.exceptions import ValidationError

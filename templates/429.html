@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Too Many Requests (429) — ClinicHub{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-5" style="min-height: 70vh; display: flex; align-items: center; justify-content: center;">
+    <div class="row justify-content-center w-100">
+        <div class="col-lg-7 col-md-9">
+            <div class="card p-4 p-md-5 text-center" style="
+                background: linear-gradient(145deg, #071911 0%, #0b261b 100%);
+                border: 1px solid rgba(197, 160, 89, 0.35);
+                border-radius: 24px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 30px rgba(197, 160, 89, 0.12);
+                color: #ffffff;
+            ">
+                <!-- Icon -->
+                <div class="mb-4 d-inline-flex align-items-center justify-content-center" style="
+                    width: 86px;
+                    height: 86px;
+                    border-radius: 50%;
+                    background: rgba(197, 160, 89, 0.12);
+                    border: 2px solid rgba(197, 160, 89, 0.45);
+                    margin: 0 auto;
+                ">
+                    <i class="fa-solid fa-gauge-high fa-2x" style="color: #e4ca8b;" aria-hidden="true"></i>
+                </div>
+
+                <!-- Code & Heading -->
+                <div class="badge px-3 py-1 mb-3 align-self-center" style="
+                    background: rgba(197, 160, 89, 0.2);
+                    border: 1px solid rgba(197, 160, 89, 0.4);
+                    color: #e4ca8b;
+                    font-size: 0.85rem;
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                ">
+                    HTTP 429 &bull; Rate Limit Exceeded
+                </div>
+
+                <h1 class="h2 mb-3" style="font-family: 'Playfair Display', serif; color: #ffffff;">
+                    Please Slow Down
+                </h1>
+
+                <p class="mb-4 text-muted" style="color: rgba(255, 255, 255, 0.78) !important; font-size: 1.05rem; line-height: 1.6;">
+                    For your security and system protection against excessive traffic, requests to this endpoint are temporarily rate-limited.
+                </p>
+
+                <!-- Timer Alert Box -->
+                <div class="p-3 mb-4 rounded-3 d-inline-flex align-items-center justify-content-center gap-3" style="
+                    background: rgba(7, 25, 17, 0.75);
+                    border: 1px solid rgba(197, 160, 89, 0.25);
+                    margin: 0 auto;
+                    min-width: 260px;
+                ">
+                    <i class="fa-regular fa-clock" style="color: #c5a059; font-size: 1.25rem;" aria-hidden="true"></i>
+                    <span style="font-size: 0.95rem; color: #f2f2f2;">
+                        You can retry in <strong id="rateCountdown" style="color: #e4ca8b; font-size: 1.15rem;">{{ retry_after|default:60 }}</strong> seconds
+                    </span>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex flex-wrap gap-3 justify-content-center">
+                    <button type="button" class="btn px-4 py-2" id="rateRetryBtn" onclick="window.location.reload();" style="
+                        background: linear-gradient(135deg, #c5a059 0%, #9e7a35 100%);
+                        color: #071911;
+                        font-weight: 700;
+                        border-radius: 12px;
+                        border: none;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-rotate-right me-2" aria-hidden="true"></i> Try Again
+                    </button>
+                    <a href="{% url 'home' %}" class="btn px-4 py-2" style="
+                        background: rgba(255, 255, 255, 0.08);
+                        border: 1px solid rgba(197, 160, 89, 0.3);
+                        color: #ffffff;
+                        font-weight: 600;
+                        border-radius: 12px;
+                        text-decoration: none;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fa-solid fa-house me-2" aria-hidden="true"></i> Return Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let secondsLeft = parseInt("{{ retry_after|default:60 }}", 10) || 60;
+    const timerElem = document.getElementById('rateCountdown');
+    const retryBtn = document.getElementById('rateRetryBtn');
+
+    if (retryBtn) retryBtn.disabled = true;
+
+    const interval = setInterval(function() {
+        secondsLeft -= 1;
+        if (timerElem) timerElem.textContent = secondsLeft;
+
+        if (secondsLeft <= 0) {
+            clearInterval(interval);
+            if (timerElem) timerElem.textContent = "0";
+            if (retryBtn) {
+                retryBtn.disabled = false;
+                retryBtn.classList.add('pulse');
+            }
+        }
+    }, 1000);
+})();
+</script>
+{% endblock %}
+

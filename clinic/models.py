@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Department(models.Model):
@@ -214,6 +215,8 @@ class Appointment(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
     is_deleted = models.BooleanField(default=False)
+    reminder_sent = models.BooleanField(default=False, db_index=True)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.slot_start_time and self.appointment_time:
@@ -809,4 +812,225 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.payment_number}: ${self.amount:.2f} via {self.get_payment_method_display()} for {self.invoice.invoice_number}"
 
-
+
+class Notification(models.Model):
+    """
+    In-app persistent notification delivered to patients, doctors, staff, or admins.
+    """
+    TYPE_CHOICES = [
+        ('APPOINTMENT', 'Appointment'),
+        ('PRESCRIPTION', 'Prescription'),
+        ('LAB_TEST', 'Diagnostic Lab'),
+        ('BILLING', 'Billing & Invoice'),
+        ('QUEUE', 'Queue & Waiting Room'),
+        ('SYSTEM', 'System Alert'),
+    ]
+
+    LEVEL_CHOICES = [
+        ('INFO', 'Informational'),
+        ('SUCCESS', 'Success'),
+        ('WARNING', 'Warning'),
+        ('DANGER', 'Critical / Alert'),
+    ]
+
+    recipient = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    sender = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sent_notifications'
+    )
+
+    notification_type = models.CharField(
+        max_length=25,
+        choices=TYPE_CHOICES,
+        default='SYSTEM',
+        db_index=True
+    )
+    level = models.CharField(
+        max_length=15,
+        choices=LEVEL_CHOICES,
+        default='INFO'
+    )
+
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True, help_text="Target URL when clicked")
+
+    is_read = models.BooleanField(default=False, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    is_deleted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+        ]
+
+    def mark_as_read(self):
+        if not self.is_read:
+            from django.utils import timezone
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at', 'updated_at'])
+
+    @property
+    def icon_class(self):
+        """Returns font-awesome icon based on notification_type."""
+        mapping = {
+            'APPOINTMENT': 'fa-solid fa-calendar-check',
+            'PRESCRIPTION': 'fa-solid fa-file-prescription',
+            'LAB_TEST': 'fa-solid fa-flask-vial',
+            'BILLING': 'fa-solid fa-file-invoice-dollar',
+            'QUEUE': 'fa-solid fa-users-line',
+            'SYSTEM': 'fa-solid fa-bell',
+        }
+        return mapping.get(self.notification_type, 'fa-solid fa-bell')
+
+    @property
+    def badge_color(self):
+        mapping = {
+            'INFO': '#0284c7',
+            'SUCCESS': '#16a34a',
+            'WARNING': '#d97706',
+            'DANGER': '#dc2626',
+        }
+        return mapping.get(self.level, '#0284c7')
+
+    def __str__(self):
+        return f"[{self.notification_type}] {self.title} -> {self.recipient.username}"
+
+
+
+
+
+
+# ========================================================
+# PHASE 9.4: AUDIT LOGGING MODEL
+# ========================================================
+
+class AuditLog(models.Model):
+    """
+    Immutable compliance & operational audit log for ClinicHub.
+    Tracks authentication, appointment changes, clinical records,
+    and financial updates with actor, IP, timestamp, and metadata.
+    """
+    ACTION_CHOICES = [
+        # Authentication
+        ('LOGIN', 'User Login'),
+        ('LOGOUT', 'User Logout'),
+        ('LOGIN_FAILED', 'Failed Login Attempt'),
+        ('PASSWORD_RESET', 'Password Reset Requested'),
+
+        # Appointments & Queue
+        ('APPOINTMENT_CREATE', 'Appointment Booked'),
+        ('APPOINTMENT_RESCHEDULE', 'Appointment Rescheduled'),
+        ('APPOINTMENT_CANCEL', 'Appointment Cancelled'),
+        ('CHECK_IN', 'Patient Check-In'),
+        ('TOKEN_CALLED', 'Token Called'),
+
+        # Clinical Consultations & Records
+        ('CONSULTATION_START', 'Consultation Started'),
+        ('CONSULTATION_COMPLETE', 'Consultation Completed'),
+        ('VITALS_RECORDED', 'Patient Vitals Recorded'),
+        ('MEDICAL_HISTORY_UPDATE', 'Medical History Updated'),
+        ('PRESCRIPTION_CREATE', 'Prescription Created'),
+        ('LAB_ORDER_CREATE', 'Lab Order Created'),
+        ('LAB_STATUS_UPDATE', 'Lab Order Status Updated'),
+
+        # Billing
+        ('INVOICE_CREATE', 'Billing Invoice Created'),
+        ('INVOICE_PAYMENT', 'Invoice Paid / Updated'),
+        ('SERVICE_CREATE', 'Billing Service Created'),
+        ('SERVICE_TOGGLE', 'Billing Service Toggled'),
+
+        # Administration & Onboarding
+        ('PATIENT_REGISTER', 'Patient Registered'),
+        ('DOCTOR_ONBOARD', 'Doctor Onboarded'),
+        ('STAFF_ONBOARD', 'Staff Onboarded'),
+        ('USER_STATUS_TOGGLE', 'User Status Toggled'),
+        ('SYSTEM', 'System Event'),
+    ]
+
+    id = models.BigAutoField(primary_key=True)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+        help_text="User who performed the action (null if unauthenticated/anonymous)"
+    )
+    actor_email = models.CharField(max_length=255, blank=True, null=True)
+    actor_role = models.CharField(max_length=50, blank=True, null=True)
+
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES, db_index=True)
+    description = models.CharField(max_length=500)
+    target_model = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    target_id = models.CharField(max_length=100, blank=True, null=True)
+
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True, null=True)
+    extra_data = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Audit Log'
+        verbose_name_plural = 'Audit Logs'
+        indexes = [
+            models.Index(fields=['action', 'created_at']),
+            models.Index(fields=['actor', 'created_at']),
+            models.Index(fields=['target_model', 'target_id']),
+        ]
+
+    @property
+    def badge_color(self):
+        """Returns visual color token based on action category."""
+        if 'LOGIN_FAILED' in self.action or 'CANCEL' in self.action:
+            return '#dc2626'  # Danger / Red
+        if 'LOGIN' in self.action or 'COMPLETE' in self.action or 'PAYMENT' in self.action or 'REGISTER' in self.action:
+            return '#16a34a'  # Success / Emerald Green
+        if 'RESCHEDULE' in self.action or 'TOGGLE' in self.action:
+            return '#d97706'  # Warning / Amber
+        if 'INVOICE' in self.action or 'BILLING' in self.action:
+            return '#9333ea'  # Purple / Billing
+        if 'CONSULTATION' in self.action or 'PRESCRIPTION' in self.action or 'VITALS' in self.action:
+            return '#0284c7'  # Blue / Clinical
+        return '#c5a059'      # Gold / General
+
+    @property
+    def action_icon(self):
+        """Returns FontAwesome icon for action type."""
+        mapping = {
+            'LOGIN': 'fa-solid fa-right-to-bracket',
+            'LOGOUT': 'fa-solid fa-right-from-bracket',
+            'LOGIN_FAILED': 'fa-solid fa-shield-virus',
+            'PASSWORD_RESET': 'fa-solid fa-key',
+            'APPOINTMENT_CREATE': 'fa-solid fa-calendar-plus',
+            'APPOINTMENT_RESCHEDULE': 'fa-solid fa-calendar-days',
+            'APPOINTMENT_CANCEL': 'fa-solid fa-calendar-xmark',
+            'CHECK_IN': 'fa-solid fa-clipboard-check',
+            'TOKEN_CALLED': 'fa-solid fa-bullhorn',
+            'CONSULTATION_START': 'fa-solid fa-stethoscope',
+            'CONSULTATION_COMPLETE': 'fa-solid fa-file-circle-check',
+            'VITALS_RECORDED': 'fa-solid fa-heart-pulse',
+            'PRESCRIPTION_CREATE': 'fa-solid fa-prescription',
+            'INVOICE_CREATE': 'fa-solid fa-file-invoice-dollar',
+            'INVOICE_PAYMENT': 'fa-solid fa-money-check-dollar',
+            'PATIENT_REGISTER': 'fa-solid fa-user-plus',
+        }
+        return mapping.get(self.action, 'fa-solid fa-list-check')
+
+    def __str__(self):
+        actor_str = self.actor_email or (self.actor.email if self.actor else "Anonymous")
+        return f"[{self.created_at.strftime('%Y-%m-%d %H:%M:%S')}] {self.action} by {actor_str}"

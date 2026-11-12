@@ -620,6 +620,13 @@ def book_slot_appointment(patient, doctor, appointment_date, slot_start_time, sl
     except Exception as exc:
         logger.warning("Could not send confirmation email for appointment %s: %s", appointment.id, exc)
 
+    # 9. Dispatch In-App Notification (Phase 7.4)
+    try:
+        from .notifications import notify_appointment_booked
+        notify_appointment_booked(appointment, token=token)
+    except Exception as exc:
+        logger.warning("Could not dispatch in-app notification for appointment %s: %s", appointment.id, exc)
+
     return appointment, token
 
 
@@ -656,11 +663,41 @@ def call_next_patient_for_doctor(doctor, date=None):
         .get(id=next_token.appointment_id)
     )
 
+    # Automatically complete any previous active consultation for this doctor
+    prev_called_tokens = Token.objects.filter(
+        doctor=doctor,
+        token_date=date,
+        status='CALLED',
+        is_deleted=False,
+    ).exclude(id=next_token.id)
+
+    for pt in prev_called_tokens:
+        pt.status = 'COMPLETED'
+        pt.save(update_fields=['status'])
+        if hasattr(pt, 'appointment') and pt.appointment.status == 'IN_CONSULTATION':
+            pt.appointment.status = 'COMPLETED'
+            pt.appointment.save(update_fields=['status', 'updated_at'])
+            try:
+                generate_or_get_appointment_invoice(pt.appointment)
+            except Exception:
+                pass
+
     next_token.status = 'CALLED'
     next_token.save(update_fields=['status'])
 
     appointment.status = 'IN_CONSULTATION'
     appointment.save(update_fields=['status', 'updated_at'])
+
+    try:
+        from .notifications import notify_patient_called
+        notify_patient_called(appointment, next_token)
+    except Exception as exc:
+        logger.warning("Could not dispatch patient called in-app notification: %s", exc)
+
+    try:
+        broadcast_queue_update()
+    except Exception as exc:
+        logger.debug("Could not broadcast live queue update on call_next_patient: %s", exc)
 
     return next_token, appointment
 
@@ -885,5 +922,163 @@ def backfill_all_pending_invoices(patient=None):
             created_count += 1
 
     return created_count
+
+
+# ========================================================
+# PHASE 7.6: REAL-TIME QUEUE UPDATES SERVICES
+# ========================================================
+
+def get_live_queue_snapshot(date=None):
+    """
+    Constructs a real-time JSON-serializable snapshot of today's queue:
+    - now_serving: list of tokens currently called / in consultation today
+    - waiting_queues: waiting tokens grouped by doctor
+    - all_waiting: ordered list of waiting tokens across the clinic
+    - stats: total waiting, now serving, completed today, total today
+    """
+    if date is None:
+        date = timezone.localdate()
+
+    # Active / Called tokens today
+    called_tokens = Token.objects.filter(
+        token_date=date,
+        status='CALLED',
+        is_deleted=False,
+        appointment__is_deleted=False,
+    ).select_related(
+        'doctor__user',
+        'doctor__department',
+        'appointment__patient__user',
+    ).order_by('-appointment__updated_at')
+
+    now_serving = []
+    for t in called_tokens:
+        patient_first = t.appointment.patient.user.first_name.strip()
+        patient_last = t.appointment.patient.user.last_name.strip()
+        patient_name = f"{patient_first} {patient_last}".strip() or "Patient"
+        initials = f"{patient_first[:1]}{patient_last[:1]}".strip().upper() or "PT"
+        doc_first = t.doctor.user.first_name.strip()
+        if doc_first.lower().startswith("dr."):
+            doc_first = doc_first[3:].strip()
+        elif doc_first.lower().startswith("dr "):
+            doc_first = doc_first[3:].strip()
+        doc_display = f"Dr. {doc_first} {t.doctor.user.last_name.strip()}".strip()
+
+        now_serving.append({
+            'token_id': t.id,
+            'token_number': t.token_number,
+            'formatted_token': f"#{t.token_number:03d}",
+            'patient_name': patient_name,
+            'patient_initials': initials,
+            'doctor_id': t.doctor.id,
+            'doctor_name': doc_display,
+            'department': t.doctor.department.name if t.doctor.department else 'General Medicine',
+            'room_desk': f"Room {t.doctor.id}" if t.doctor.id else "Consultation Desk",
+            'time_slot': t.time_slot or getattr(t.appointment, 'time_slot', '') or (t.appointment.appointment_time.strftime('%I:%M %p') if t.appointment.appointment_time else ''),
+            'called_at': timezone.localtime(t.appointment.updated_at).strftime('%I:%M %p') if t.appointment.updated_at else '',
+        })
+
+    # Waiting tokens today
+    waiting_tokens_qs = Token.objects.filter(
+        token_date=date,
+        status='WAITING',
+        is_deleted=False,
+        appointment__is_deleted=False,
+        doctor__is_active=True,
+        doctor__is_deleted=False,
+    ).select_related(
+        'doctor__user',
+        'doctor__department',
+        'appointment__patient__user',
+    ).order_by('doctor__user__first_name', 'slot_start_time', 'token_number')
+
+    doctor_queues = {}
+    all_waiting = []
+
+    for t in waiting_tokens_qs:
+        patient_first = t.appointment.patient.user.first_name.strip()
+        patient_last = t.appointment.patient.user.last_name.strip()
+        patient_name = f"{patient_first} {patient_last}".strip() or "Patient"
+        doc_first = t.doctor.user.first_name.strip()
+        if doc_first.lower().startswith("dr."):
+            doc_first = doc_first[3:].strip()
+        elif doc_first.lower().startswith("dr "):
+            doc_first = doc_first[3:].strip()
+        doc_display = f"Dr. {doc_first} {t.doctor.user.last_name.strip()}".strip()
+
+        doc_id = t.doctor.id
+        if doc_id not in doctor_queues:
+            doctor_queues[doc_id] = {
+                'doctor_id': doc_id,
+                'doctor_name': doc_display,
+                'department': t.doctor.department.name if t.doctor.department else 'General Medicine',
+                'room_desk': f"Room {doc_id}",
+                'waiting_count': 0,
+                'tokens': [],
+            }
+
+        token_data = {
+            'token_id': t.id,
+            'token_number': t.token_number,
+            'formatted_token': f"#{t.token_number:03d}",
+            'patient_name': patient_name,
+            'doctor_name': doc_display,
+            'department': t.doctor.department.name if t.doctor.department else 'General Medicine',
+            'room_desk': f"Room {doc_id}",
+            'time_slot': t.time_slot or getattr(t.appointment, 'time_slot', '') or (t.appointment.appointment_time.strftime('%I:%M %p') if t.appointment.appointment_time else ''),
+            'checked_in_at': timezone.localtime(t.checked_in_at).strftime('%I:%M %p') if t.checked_in_at else '',
+        }
+        doctor_queues[doc_id]['waiting_count'] += 1
+        doctor_queues[doc_id]['tokens'].append(token_data)
+        all_waiting.append(token_data)
+
+    total_waiting = waiting_tokens_qs.count()
+    completed_today = Token.objects.filter(
+        token_date=date,
+        status='COMPLETED',
+        is_deleted=False,
+    ).count()
+    total_today = Token.objects.filter(
+        token_date=date,
+        is_deleted=False,
+    ).count()
+
+    local_now = timezone.localtime()
+
+    return {
+        'now_serving': now_serving,
+        'waiting_queues': list(doctor_queues.values()),
+        'all_waiting': all_waiting,
+        'stats': {
+            'now_serving_count': len(now_serving),
+            'waiting_count': total_waiting,
+            'completed_count': completed_today,
+            'total_today': total_today,
+        },
+        'server_time': local_now.strftime('%I:%M:%S %p'),
+        'server_date': local_now.strftime('%A, %B %d, %Y'),
+        'timestamp': timezone.now().isoformat(),
+    }
+
+
+def broadcast_queue_update():
+    """
+    Safely triggers a real-time WebSocket broadcast to all connected clients
+    listening on the 'queue_live' group.
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                'queue_live',
+                {
+                    'type': 'queue.update',
+                    'message': 'updated',
+                }
+            )
+    except Exception as exc:
+        logger.debug("Live queue channel broadcast skipped: %s", exc)
 
 

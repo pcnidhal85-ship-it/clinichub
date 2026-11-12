@@ -16,6 +16,8 @@ from .models import (
     Invoice,
     InvoiceLineItem,
     Payment,
+    Notification,
+    AuditLog,
 )
 from .forms import DoctorForm, StaffForm
 
@@ -308,4 +310,48 @@ class PaymentAdmin(admin.ModelAdmin):
     )
     list_filter = ('payment_method', 'payment_date')
     search_fields = ('payment_number', 'invoice__invoice_number', 'transaction_reference')
-
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'recipient',
+        'notification_type',
+        'level',
+        'is_read',
+        'created_at',
+    )
+    list_filter = ('notification_type', 'level', 'is_read', 'created_at')
+    search_fields = ('title', 'message', 'recipient__username', 'recipient__email')
+    readonly_fields = ('created_at', 'updated_at', 'read_at')
+
+
+
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at',
+        'action',
+        'actor_display',
+        'actor_role',
+        'target_model',
+        'target_id',
+        'description',
+        'ip_address',
+    )
+    list_filter = ('action', 'actor_role', 'target_model', 'created_at')
+    search_fields = ('description', 'actor_email', 'actor__username', 'actor__email', 'target_id', 'ip_address')
+    readonly_fields = [f.name for f in AuditLog._meta.fields]
+
+    def actor_display(self, obj):
+        return obj.actor_email or (obj.actor.email if obj.actor else "Anonymous")
+    actor_display.short_description = "Actor"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
